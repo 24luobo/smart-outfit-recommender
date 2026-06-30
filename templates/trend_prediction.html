@@ -1,0 +1,629 @@
+{% extends "base.html" %}
+
+{% block title %}潮流预测 - 智能穿搭推荐系统{% endblock %}
+
+{% block content %}
+<div class="kk-trend-main-content">
+    <!-- 页面标题 -->
+    <div class="kk-trend-header">
+        <h1>🔮 潮流预测</h1>
+        <p>基于近期服饰流行数据，AI为你预测当下和未来潮流</p>
+    </div>
+
+    <!-- 预测参数 -->
+    <div class="kk-trend-params-section">
+        <div class="kk-trend-param-card">
+            <h3>预测设置</h3>
+            <div class="kk-trend-param-group">
+                <label>预测时间范围</label>
+                <select id="trendTimeRange">
+                    <option value="current">当下潮流</option>
+                    <option value="next-month">未来1个月</option>
+                    <option value="next-season">未来1季</option>
+                </select>
+            </div>
+            <button class="kk-trend-generate-btn" onclick="generateTrendPrediction()">
+                生成潮流预测
+            </button>
+        </div>
+    </div>
+
+    <!-- 加载状态 -->
+    <div class="kk-trend-loading" id="trendLoading" style="display: none;">
+        <div class="kk-trend-spinner"></div>
+        <p>AI正在分析潮流数据...</p>
+    </div>
+
+    <!-- 预测结果 -->
+    <div class="kk-trend-results" id="trendResults" style="display: none;">
+        <!-- 潮流文字分析 -->
+        <div class="kk-trend-analysis-card">
+            <h3>📊 潮流分析</h3>
+            <div class="kk-trend-analysis-content" id="trendAnalysis">
+            </div>
+        </div>
+
+        <!-- 基于本地图片的穿搭推荐 -->
+        <div class="kk-trend-recommend-card" id="trendRecommendCard" style="display: none;">
+            <div class="kk-trend-recommend-header">
+                <h3>👗 主流风格穿搭推荐 · 本地图库</h3>
+                <span class="kk-trend-recommend-tag" id="trendRecommendTag"></span>
+            </div>
+            <p class="kk-trend-recommend-desc" id="trendRecommendDesc"></p>
+            <div class="kk-trend-recommend-toolbar">
+                <label>性别:</label>
+                <div class="kk-trend-chip-group" id="trendGenderChips">
+                    <span class="kk-trend-chip active" data-gender="female">女</span>
+                    <span class="kk-trend-chip" data-gender="male">男</span>
+                </div>
+                <span class="kk-trend-recommend-count" id="trendRecommendCount"></span>
+            </div>
+            <div class="kk-trend-recommend-grid" id="trendRecommendGrid">
+                <div class="kk-trend-recommend-loading">AI 正在挑选穿搭...</div>
+            </div>
+        </div>
+
+        <!-- 搭配建议 -->
+        <div class="kk-trend-suggestions-card" id="trendSuggestions" style="display: none;">
+            <h3>👔 你的衣橱搭配建议</h3>
+            <div class="kk-trend-suggestions-content" id="trendSuggestionsContent">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .kk-trend-main-content {
+        margin-top: 50px;
+        margin-bottom: 70px;
+        padding: 16px;
+    }
+
+    .kk-trend-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .kk-trend-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #4A4540;
+        margin-bottom: 8px;
+    }
+
+    .kk-trend-header p {
+        font-size: 14px;
+        color: #8A847E;
+    }
+
+    .kk-trend-params-section {
+        margin-bottom: 24px;
+    }
+
+    .kk-trend-param-card {
+        background: #FDFCFA;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 2px 12px rgba(74, 69, 64, 0.06);
+    }
+
+    .kk-trend-param-card h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #4A4540;
+        margin-bottom: 20px;
+    }
+
+    .kk-trend-param-group {
+        margin-bottom: 20px;
+    }
+
+    .kk-trend-param-group label {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        color: #6B6560;
+        margin-bottom: 8px;
+    }
+
+    .kk-trend-param-group select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #E8E5E0;
+        border-radius: 12px;
+        font-size: 14px;
+        color: #4A4540;
+        background: #FDFCFA;
+        outline: none;
+        cursor: pointer;
+    }
+
+    .kk-trend-generate-btn {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #9AA8B0 0%, #A8B8AA 100%);
+        color: #FDFCFA;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .kk-trend-generate-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(154, 168, 176, 0.3);
+    }
+
+    .kk-trend-loading {
+        text-align: center;
+        padding: 48px;
+        margin-bottom: 24px;
+    }
+
+    .kk-trend-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #E8E5E0;
+        border-top-color: #9AA8B0;
+        border-radius: 50%;
+        animation: kk-spin 1s linear infinite;
+        margin: 0 auto 16px;
+    }
+
+    @keyframes kk-spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .kk-trend-loading p {
+        font-size: 14px;
+        color: #8A847E;
+    }
+
+    .kk-trend-results {
+        margin-bottom: 24px;
+    }
+
+    .kk-trend-analysis-card {
+        background: #FDFCFA;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 2px 12px rgba(74, 69, 64, 0.06);
+        margin-bottom: 24px;
+    }
+
+    .kk-trend-analysis-card h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #4A4540;
+        margin-bottom: 20px;
+    }
+
+    .kk-trend-analysis-content {
+        color: #6B6560;
+        line-height: 1.8;
+    }
+
+    .kk-trend-style-tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .kk-trend-style-tag {
+        padding: 8px 16px;
+        background: #F4F1ED;
+        color: #6B6560;
+        border-radius: 24px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .kk-trend-suggestions-card {
+        background: #FDFCFA;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 2px 12px rgba(74, 69, 64, 0.06);
+        margin-bottom: 24px;
+    }
+
+    .kk-trend-suggestions-card h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #4A4540;
+        margin-bottom: 20px;
+    }
+
+    .kk-trend-suggestions-content {
+        color: #6B6560;
+        line-height: 1.8;
+    }
+
+    /* —— 主流风格穿搭推荐 —— */
+    .kk-trend-recommend-card {
+        background: #FDFCFA;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 2px 12px rgba(74, 69, 64, 0.06);
+        margin-bottom: 24px;
+    }
+    .kk-trend-recommend-header {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 8px; margin-bottom: 6px;
+    }
+    .kk-trend-recommend-header h3 {
+        font-size: 18px; font-weight: 700; color: #4A4540; margin: 0;
+    }
+    .kk-trend-recommend-tag {
+        font-size: 12px; color: #FDFCFA;
+        background: linear-gradient(135deg, #9AA8B0, #7A8A92);
+        padding: 4px 12px; border-radius: 20px; font-weight: 500;
+    }
+    .kk-trend-recommend-desc {
+        font-size: 13px; color: #8A847E; margin-bottom: 14px;
+    }
+    .kk-trend-recommend-toolbar {
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .kk-trend-recommend-toolbar label {
+        font-size: 13px; color: #6B6560; font-weight: 500;
+    }
+    .kk-trend-chip-group { display: inline-flex; gap: 6px; }
+    .kk-trend-chip {
+        padding: 4px 14px; font-size: 13px;
+        background: #F4F1ED; color: #6B6560;
+        border-radius: 16px; cursor: pointer;
+        transition: all .2s; user-select: none;
+    }
+    .kk-trend-chip.active {
+        background: #7A8A92; color: #FDFCFA; font-weight: 600;
+    }
+    .kk-trend-recommend-count {
+        margin-left: auto; font-size: 12px; color: #8A847E;
+    }
+    .kk-trend-recommend-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    @media (min-width: 600px) {
+        .kk-trend-recommend-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    .kk-trend-recommend-item {
+        position: relative;
+        aspect-ratio: 3 / 4;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #F4F1ED;
+        cursor: pointer;
+        box-shadow: 0 1px 4px rgba(74, 69, 64, 0.08);
+        transition: transform .2s, box-shadow .2s;
+    }
+    .kk-trend-recommend-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(74, 69, 64, 0.15);
+    }
+    .kk-trend-recommend-item img {
+        width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .kk-trend-recommend-item .kk-trend-item-tag {
+        position: absolute; left: 6px; top: 6px;
+        font-size: 12px; padding: 3px 10px;
+        background: rgba(255, 255, 255, 0.96);
+        color: #4A4540; border-radius: 12px; font-weight: 600;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        z-index: 2;
+    }
+    .kk-trend-recommend-item .kk-trend-item-dislike {
+        position: absolute; right: 6px; top: 6px;
+        width: 26px; height: 26px;
+        background: rgba(255, 255, 255, 0.96);
+        color: #C97070; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; font-weight: 700; line-height: 1;
+        cursor: pointer; z-index: 3;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        transition: transform .15s, background .15s;
+        user-select: none;
+    }
+    .kk-trend-recommend-item .kk-trend-item-dislike:hover {
+        background: #C97070; color: #fff; transform: scale(1.1);
+    }
+    .kk-trend-recommend-item.kk-disliked {
+        opacity: 0.35; filter: grayscale(0.6);
+    }
+    .kk-trend-recommend-loading,
+    .kk-trend-recommend-empty {
+        grid-column: 1 / -1;
+        text-align: center; padding: 32px 12px;
+        color: #8A847E; font-size: 13px;
+    }
+    .kk-trend-recommend-empty {
+        background: #F8F6F3; border-radius: 10px;
+    }
+</style>
+
+<script>
+    async function generateTrendPrediction() {
+        const timeRange = document.getElementById('trendTimeRange').value;
+        
+        // 显示加载状态
+        document.getElementById('trendLoading').style.display = 'block';
+        document.getElementById('trendResults').style.display = 'none';
+        
+        try {
+            // 调用潮流预测API
+            const response = await fetch('/api/trend-prediction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ timeRange: timeRange })
+            });
+            
+            const data = await response.json();
+            
+            // 隐藏加载状态
+            document.getElementById('trendLoading').style.display = 'none';
+            
+            if (!data.success) {
+                throw new Error(data.error || '预测失败');
+            }
+            
+            // 兼容后端返回的 prediction 字段
+            const result = data.prediction || data;
+            const styles = result.styles || (result.style ? [result.style] : []);
+            const colors = result.colors || [];
+            const elements = result.elements || [];
+            const analysis = result.analysis || result.description || '';
+            const suggestions = result.suggestions || [];
+
+            // 全部 8 个风格概率分布(ML 预测可见)
+            const distribution = result.distribution || {};
+            const targetSeason = result.target_season || '';
+            const method = result.method || '';
+            const browseHeatUsed = result.browse_heat_used;
+
+            document.getElementById('trendResults').style.display = 'block';
+
+            // 显示潮流分析
+            const styleTagsHtml = styles.length
+                ? `<div class="kk-trend-style-tags">${styles.map(s => `<span class="kk-trend-style-tag">${s}</span>`).join('')}</div>`
+                : '';
+            const colorsHtml = colors.length ? `<div class="kk-trend-colors"><strong>推荐色系：</strong>${colors.join('、')}</div>` : '';
+            const elementsHtml = elements.length ? `<div class="kk-trend-elements"><strong>设计元素：</strong>${elements.join('、')}</div>` : '';
+            const confidenceHtml = typeof result.confidence === 'number'
+                ? `<p style="margin-top: 8px; font-size: 13px; color: #8A847E;">置信度：${(result.confidence * 100).toFixed(0)}%</p>`
+                : '';
+
+            // 概率分布六边形雷达图
+            let distHtml = '';
+            if (Object.keys(distribution).length) {
+                const entries = Object.entries(distribution);
+                const labels = entries.map(([n]) => n);
+                const values = entries.map(([, p]) => p);
+                const maxP = Math.max(...values);
+                // 雷达图尺寸参数 - 加宽 viewBox 防止左右标签被截断
+                const W = 480, H = 420;
+                const cx = W / 2;
+                const cy = H / 2 + 10;  // 整体下移给顶部标签留空间
+                const radius = 120;
+                const labelGap = 40;     // 标签距圆环的距离
+                const n = labels.length;
+                // 第 0 个点在正上方,顺时针
+                const angle = (i) => -Math.PI / 2 + (2 * Math.PI * i) / n;
+                const point = (i, r) => [cx + r * Math.cos(angle(i)), cy + r * Math.sin(angle(i))];
+                // 网格层(3 层)
+                const gridLevels = 3;
+                let gridPolygons = '';
+                for (let lv = 1; lv <= gridLevels; lv++) {
+                    const r = (radius * lv) / gridLevels;
+                    const pts = [];
+                    for (let i = 0; i < n; i++) {
+                        pts.push(point(i, r).map(v => v.toFixed(1)).join(','));
+                    }
+                    gridPolygons += `<polygon points="${pts.join(' ')}" fill="none" stroke="#D8D2C9" stroke-width="1"/>`;
+                }
+                // 轴线
+                let axisLines = '';
+                for (let i = 0; i < n; i++) {
+                    const [x, y] = point(i, radius);
+                    axisLines += `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#E0DAD0" stroke-width="1"/>`;
+                }
+                // 数据多边形
+                const dataPts = values.map((v, i) => {
+                    const r = maxP > 0 ? (v / maxP) * radius : 0;
+                    return point(i, r).map(v2 => v2.toFixed(1)).join(',');
+                }).join(' ');
+                // 数据点
+                let dataDots = '';
+                for (let i = 0; i < n; i++) {
+                    const r = maxP > 0 ? (values[i] / maxP) * radius : 0;
+                    const [x, y] = point(i, r);
+                    dataDots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="#7A8A92" stroke="#FDFCFA" stroke-width="1.5"/>`;
+                }
+                // 标签 + 百分比(用外接矩形判断,避免被 viewBox 截断)
+                let labelTexts = '';
+                for (let i = 0; i < n; i++) {
+                    const cosA = Math.cos(angle(i));
+                    const sinA = Math.sin(angle(i));
+                    const lx = cx + (radius + labelGap) * cosA;
+                    const ly = cy + (radius + labelGap) * sinA;
+                    // 文字锚点(左右用 start/end 防止越界)
+                    let anchor = 'middle';
+                    if (cosA > 0.25) anchor = 'start';
+                    else if (cosA < -0.25) anchor = 'end';
+                    // 文字上下偏移:顶/底/左/右 略调,避免压轴
+                    let yName = ly - 4;
+                    let yPct  = ly + 11;
+                    if (sinA < -0.5) { yName = ly - 14; yPct = ly + 1; }
+                    if (sinA >  0.5) { yName = ly - 4;  yPct = ly + 14; }
+                    const pct = (values[i] * 100).toFixed(1) + '%';
+                    labelTexts += `<text x="${lx.toFixed(1)}" y="${yName.toFixed(1)}" text-anchor="${anchor}" font-size="13" font-weight="600" fill="#4A4540">${labels[i]}</text>`;
+                    labelTexts += `<text x="${lx.toFixed(1)}" y="${yPct.toFixed(1)}" text-anchor="${anchor}" font-size="11" fill="#8A847E">${pct}</text>`;
+                }
+                // 最大值指引圈(在中心显示最热门风格)
+                const topIdx = values.indexOf(maxP);
+                const topLabel = labels[topIdx] || '';
+
+                distHtml = `
+                    <div style="margin-top:20px; padding:20px; background:#F8F6F3; border-radius:12px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                            <strong style="font-size:14px; color:#4A4540;">🕸️ 8 大风格概率分布(机器学习输出)</strong>
+                            <span style="font-size:11px; color:#8A847E;">${method}${browseHeatUsed ? ' · 已融合你的浏览数据' : ''}</span>
+                        </div>
+                        ${targetSeason ? `<div style="font-size:12px; color:#8A847E; margin-bottom:12px;">预测目标: ${targetSeason} · 最热门：<strong style="color:#7A8A92;">${topLabel} ${(maxP * 100).toFixed(1)}%</strong></div>` : ''}
+                        <div style="display:flex; justify-content:center;">
+                            <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:540px; height:auto; display:block; overflow:visible;" xmlns="http://www.w3.org/2000/svg">
+                                ${gridPolygons}
+                                ${axisLines}
+                                <polygon points="${dataPts}" fill="rgba(154, 168, 176, 0.35)" stroke="#7A8A92" stroke-width="2" stroke-linejoin="round"/>
+                                ${dataDots}
+                                ${labelTexts}
+                            </svg>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const analysisHtml = `
+                ${styleTagsHtml}
+                ${colorsHtml}
+                ${elementsHtml}
+                <p style="margin-top: 16px; font-size: 16px;">${analysis}</p>
+                ${confidenceHtml}
+                ${distHtml}
+            `;
+            document.getElementById('trendAnalysis').innerHTML = analysisHtml;
+
+            // === 根据主流风格,从本地图片库拉穿搭推荐 ===
+            const topStyleKey = result.style_key || 'casual';
+            // 优先用英文 key(target_season_key),回退到中文 target_season
+            const targetSeasonKey = (result.target_season_key || result.target_season || '').toLowerCase();
+            window.__trendTopStyle = { style_key: topStyleKey, season: targetSeasonKey };
+            // 记录当前选中的性别(从 active chip 读取)
+            const activeChip = document.querySelector('#trendGenderChips .kk-trend-chip.active');
+            window.__trendCurrentGender = activeChip ? activeChip.dataset.gender : 'female';
+            loadTrendOutfitGrid(window.__trendCurrentGender);
+
+            // 查看是否有用户衣橱数据，显示搭配建议
+            const myClothes = JSON.parse(localStorage.getItem('myClothes') || '[]');
+            if (suggestions.length > 0 && myClothes.length > 0) {
+                document.getElementById('trendSuggestions').style.display = 'block';
+                const suggestionsHtml = `
+                    <p>根据你的衣橱，推荐以下搭配：</p>
+                    <ul>
+                        ${suggestions.map(s => `<li>${s}</li>`).join('')}
+                    </ul>
+                `;
+                document.getElementById('trendSuggestionsContent').innerHTML = suggestionsHtml;
+            } else {
+                document.getElementById('trendSuggestions').style.display = 'none';
+            }
+        } catch (error) {
+            console.error('生成潮流预测失败:', error);
+            alert('生成潮流预测失败：' + (error.message || '请重试'));
+            document.getElementById('trendLoading').style.display = 'none';
+        }
+    }
+
+    // ====== 加载本地穿搭推荐 ======
+    async function loadTrendOutfitGrid(gender) {
+        const meta = window.__trendTopStyle || { style_key: 'casual', season: '' };
+        const card = document.getElementById('trendRecommendCard');
+        const grid = document.getElementById('trendRecommendGrid');
+        const tag = document.getElementById('trendRecommendTag');
+        const desc = document.getElementById('trendRecommendDesc');
+        const count = document.getElementById('trendRecommendCount');
+
+        if (card) card.style.display = 'block';
+        grid.innerHTML = '<div class="kk-trend-recommend-loading">AI 正在挑选穿搭...</div>';
+
+        try {
+            const resp = await fetch('/api/trend-recommendation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    style_key: meta.style_key,
+                    season: meta.season,
+                    gender: gender,
+                    limit: 6,
+                }),
+            });
+            const data = await resp.json();
+            if (!data.success) throw new Error(data.error || '加载失败');
+
+            tag.textContent = `${data.style_cn} · ${data.season_cn || '全季'}`;
+            desc.textContent = `基于「${data.style_cn}」风格,为你从本地图库挑选 ${data.items.length} 套穿搭参考,目标季节:${data.season_cn || '不限'}。点击大图可放大查看。`;
+
+            if (!data.items.length) {
+                grid.innerHTML = `<div class="kk-trend-recommend-empty">本地暂无「${data.season_cn || '本季'} · ${data.style_cn} · ${data.gender === 'female' ? '女' : '男'}」对应图片。<br>试试切换其他风格、季节或性别。</div>`;
+                count.textContent = '';
+                return;
+            }
+            count.textContent = `共 ${data.items.length} 套`;
+
+            // 角标统一显示"用户请求的季节+性别"
+            const reqGenderLabel = (data.gender === 'female' || data.gender === '女') ? '女' : '男';
+            const reqSeasonLabel = data.season_cn ? data.season_cn.replace('季', '') : '';
+            const tagText = reqSeasonLabel ? `${reqGenderLabel}·${reqSeasonLabel}季` : `${reqGenderLabel}·穿搭`;
+
+            grid.innerHTML = data.items.map((it) => {
+                return `
+                    <div class="kk-trend-recommend-item" data-url="${it.url}" onclick="if(!event.target.classList.contains('kk-trend-item-dislike')) window.open('${it.url}','_blank')" title="${it.folder}">
+                        <span class="kk-trend-item-tag">${tagText}</span>
+                        <span class="kk-trend-item-dislike" title="这张不在 ${data.season_cn}?点此隐藏,以后不再推荐">×</span>
+                        <img src="${it.url}" alt="${it.folder}" loading="lazy" onerror="this.style.opacity=.3;this.alt='图片加载失败'">
+                    </div>
+                `;
+            }).join('');
+
+            // 绑定 ✕ 按钮:点击加入黑名单
+            grid.querySelectorAll('.kk-trend-item-dislike').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const item = btn.closest('.kk-trend-recommend-item');
+                    const url = item.dataset.url;
+                    if (!confirm('确定要将这张图加入黑名单吗?以后不会再推荐。')) return;
+                    try {
+                        const r = await fetch('/api/outfit-feedback', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url, action: 'hide' })
+                        });
+                        const d = await r.json();
+                        if (d.success) {
+                            item.classList.add('kk-disliked');
+                            item.style.transition = 'opacity .3s';
+                            setTimeout(() => item.remove(), 350);
+                            // 重新拉一次,补上新的图(本季其他目录)
+                            setTimeout(() => loadTrendOutfitGrid(window.__trendCurrentGender || 'female'), 400);
+                        } else {
+                            alert('操作失败:' + d.error);
+                        }
+                    } catch (err) {
+                        alert('网络错误:' + err.message);
+                    }
+                });
+            });
+        } catch (e) {
+            console.error('加载穿搭推荐失败:', e);
+            grid.innerHTML = `<div class="kk-trend-recommend-empty">加载失败:${e.message}</div>`;
+        }
+    }
+
+    // 性别切换
+    document.addEventListener('DOMContentLoaded', () => {
+        const chips = document.querySelectorAll('#trendGenderChips .kk-trend-chip');
+        chips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                chips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                window.__trendCurrentGender = chip.dataset.gender;
+                loadTrendOutfitGrid(chip.dataset.gender);
+            });
+        });
+    });
+</script>
+{% endblock %}
