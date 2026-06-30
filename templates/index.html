@@ -1,0 +1,1398 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 智能穿搭推荐系统{% endblock %}
+
+{% block content %}
+<div class="kk-home-container">
+    <div class="kk-header">
+        <h1 class="kk-title">智能穿搭推荐</h1>
+        <p class="kk-subtitle">为你精选的个性化穿搭方案</p>
+    </div>
+
+    <div class="kk-recommendation-grid" id="recommendationGrid">
+        <!-- 推荐卡片将通过JavaScript动态生成 -->
+    </div>
+</div>
+
+<!-- 穿搭详情弹窗 -->
+<div class="kk-modal-overlay" id="outfitModal" onclick="closeModal(event)">
+    <div class="kk-modal" onclick="event.stopPropagation()">
+        <div class="kk-modal-header">
+            <h3 class="kk-modal-title" id="modalTitle">更多同款穿搭</h3>
+            <button class="kk-modal-close" onclick="closeOutfitModal()">&times;</button>
+        </div>
+        
+<div class="kk-modal-content" id="modalContent">
+            <!-- 弹窗内容将动态生成 -->
+        </div>
+    </div>
+</div>
+
+<!-- 大图查看弹窗 -->
+<div class="kk-image-modal-overlay" id="imageModal" onclick="closeImageModal()">
+    <div class="kk-image-modal" onclick="event.stopPropagation()">
+        <button class="kk-image-modal-close" onclick="closeImageModal()">&times;</button>
+        <!-- img 在打开弹窗时由 JS 动态创建,避免空 src 触发的资源加载错误 -->
+        <div id="imageModalImgContainer" class="kk-image-modal-img-container"></div>
+    </div>
+</div>
+
+<style>
+    .kk-home-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 10px 20px 30px 20px;
+    }
+    
+    /* 覆盖全局样式，减少顶部间距 */
+    .main-content {
+        padding-top: 0 !important;
+    }
+
+    .kk-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-top: 60px;
+    }
+
+    .kk-title {
+        font-size: 42px;
+        font-weight: 700;
+        color: #4A4540;
+        margin-bottom: 15px;
+    }
+
+    .kk-subtitle {
+        font-size: 20px;
+        color: #8A847E;
+    }
+
+    .kk-recommendation-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+    }
+
+    .kk-style-section {
+        margin-bottom: 20px;
+    }
+
+    .kk-style-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #4A4540;
+        margin-bottom: 24px;
+        padding-left: 8px;
+        border-left: 4px solid #FFD700;
+    }
+
+    /* 风格卡片横向一排布局 */
+    .kk-style-row {
+        display: flex;
+        gap: 24px;
+        padding: 20px 0;
+        overflow-x: auto;
+    }
+
+    .kk-style-card {
+        flex: 0 0 280px;
+        background: #FDFCFA;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .kk-style-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    }
+
+    .kk-style-card-image-container {
+        position: relative;
+        width: 100%;
+        padding-top: 100%;
+        overflow: hidden;
+    }
+
+    .kk-style-card-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        cursor: pointer;
+    }
+
+    .kk-style-card-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #4A4540;
+        padding: 16px 20px 8px;
+        text-align: center;
+    }
+
+    .kk-style-card-hint {
+        color: #9AA8B0;
+        font-size: 14px;
+        padding: 0 20px 20px;
+        text-align: center;
+    }
+
+    /* 弹窗筛选样式 */
+    .kk-modal-filter {
+        margin-bottom: 24px;
+        padding: 20px;
+        background: #F8F6F3;
+        border-radius: 16px;
+    }
+
+    .kk-modal-filter-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #4A4540;
+        margin-bottom: 16px;
+    }
+
+    .kk-modal-season-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .kk-season-btn {
+        padding: 10px 24px;
+        border: 2px solid #E8E5E0;
+        background: #FDFCFA;
+        color: #6B6560;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .kk-season-btn:hover {
+        border-color: #9AA8B0;
+        color: #4A4540;
+    }
+
+    .kk-season-btn.active {
+        background: #9AA8B0;
+        border-color: #9AA8B0;
+        color: #FDFCFA;
+    }
+
+    .kk-apply-btn {
+        margin-top: 16px;
+        padding: 12px 32px;
+        border: none;
+        background: #9AA8B0;
+        color: #FDFCFA;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .kk-apply-btn:hover {
+        background: #8A9AA0;
+        transform: translateY(-2px);
+    }
+
+    .kk-no-results {
+        text-align: center;
+        padding: 40px;
+        color: #8A847E;
+        font-size: 16px;
+    }
+
+    /* 两列网格布局 */
+    .kk-style-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 28px;
+    }
+
+    /* 单张卡片布局（运动活力和清爽韩系） */
+    .kk-single-card-section {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 40px;
+    }
+
+    .kk-single-card {
+        width: 100%;
+        max-width: 600px;
+        background: #FDFCFA;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .kk-single-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    }
+
+    .kk-single-card-image-container {
+        position: relative;
+        width: 100%;
+        padding-top: 75%;
+        overflow: hidden;
+    }
+
+    .kk-single-card-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        cursor: pointer;
+    }
+
+    .kk-single-card-content {
+        padding: 24px;
+    }
+
+    .kk-single-card-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #4A4540;
+        margin-bottom: 16px;
+    }
+
+    .kk-single-card-tags {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+
+    .kk-single-tag {
+        background: #F4F1ED;
+        color: #6B6560;
+        padding: 8px 18px;
+        border-radius: 12px;
+        font-size: 14px;
+    }
+
+    .kk-single-card-hint {
+        color: #9AA8B0;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .kk-outfit-card {
+        background: #FDFCFA;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .kk-outfit-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .kk-card-image-container {
+        position: relative;
+        width: 100%;
+        padding-top: 75%;
+        overflow: hidden;
+    }
+
+    .kk-card-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        cursor: pointer;
+    }
+
+    .kk-match-tag {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: #FFD700;
+        color: #4A4540;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 16px;
+    }
+
+    .kk-card-content {
+        padding: 20px;
+    }
+
+    .kk-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .kk-card-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #4A4540;
+    }
+
+    .kk-card-tags {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .kk-tag {
+        background: #F4F1ED;
+        color: #6B6560;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .kk-tag.personalized {
+        background: #F8F6F3;
+        color: #9AA8B0;
+        border: 1px dashed #A8B8AA;
+    }
+
+    .kk-card-footer {
+        display: flex;
+        gap: 18px;
+        color: #8A847E;
+        font-size: 14px;
+        padding-top: 16px;
+        border-top: 1px solid #E8E5E0;
+    }
+
+    .kk-footer-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* 弹窗样式 */
+    .kk-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .kk-modal-overlay.active {
+        display: flex;
+    }
+
+    .kk-modal {
+        background: #FDFCFA;
+        border-radius: 24px;
+        max-width: 1000px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .kk-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px 32px;
+        border-bottom: 1px solid #E8E5E0;
+        position: sticky;
+        top: 0;
+        background: #FDFCFA;
+    }
+
+    .kk-modal-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #4A4540;
+        margin: 0;
+    }
+
+    .kk-modal-close {
+        background: none;
+        border: none;
+        font-size: 36px;
+        color: #8A847E;
+        cursor: pointer;
+        line-height: 1;
+        transition: all 0.3s ease;
+    }
+
+    .kk-modal-close:hover {
+        color: #4A4540;
+        transform: rotate(90deg);
+    }
+
+    /* 弹窗内的天气筛选区域 */
+    .kk-modal-weather-section {
+        padding: 20px 32px;
+        border-bottom: 1px solid #E8E5E0;
+        background: #F8F6F3;
+    }
+
+    .kk-modal-weather-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #4A4540;
+        margin-bottom: 16px;
+    }
+
+    .kk-weather-controls {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .kk-weather-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .kk-weather-input-group label {
+        font-size: 14px;
+        color: #6B6560;
+        font-weight: 600;
+    }
+
+    .kk-weather-input {
+        padding: 10px 14px;
+        border: 2px solid #E8E5E0;
+        border-radius: 10px;
+        font-size: 16px;
+        width: 120px;
+        transition: all 0.3s ease;
+        background: #FDFCFA;
+    }
+
+    .kk-weather-input:focus {
+        outline: none;
+        border-color: #9AA8B0;
+    }
+
+    .kk-weather-select {
+        padding: 10px 14px;
+        border: 2px solid #E8E5E0;
+        border-radius: 10px;
+        font-size: 16px;
+        width: 150px;
+        background: #FDFCFA;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .kk-weather-select:focus {
+        outline: none;
+        border-color: #9AA8B0;
+    }
+
+    .kk-weather-btn {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #9AA8B0;
+        color: #FDFCFA;
+    }
+
+    .kk-weather-btn:hover {
+        background: #88969E;
+        transform: translateY(-2px);
+    }
+
+    .kk-weather-btn-clear {
+        background: #B8A89A;
+    }
+
+    .kk-weather-btn-clear:hover {
+        background: #A8988A;
+    }
+
+    .kk-modal-content {
+        padding: 32px;
+    }
+
+    .kk-modal-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+    }
+
+    .kk-modal-card {
+        background: #F8F6F3;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .kk-modal-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .kk-fav-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(253, 252, 250, 0.9);
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 5;
+        transition: all 0.2s;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        padding: 0;
+        line-height: 1;
+    }
+    .kk-fav-btn:hover { transform: scale(1.1); background: #FDFCFA; }
+    .kk-fav-btn.favorited { background: #FFE4E1; }
+    .kk-fav-btn .kk-fav-icon { color: #8A847E; font-size: 18px; transition: color 0.2s; }
+    .kk-fav-btn.favorited .kk-fav-icon { color: #C97676; }
+    .kk-fav-btn.favorited .kk-fav-icon::before { content: '❤'; }
+    .kk-fav-btn:not(.favorited) .kk-fav-icon::before { content: '♡'; }
+
+    .kk-modal-card-image-container {
+        position: relative;
+        width: 100%;
+        padding-top: 75%;
+        overflow: hidden;
+    }
+
+    .kk-modal-card-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        cursor: pointer;
+    }
+
+    .kk-modal-card-content {
+        padding: 16px;
+    }
+
+    .kk-modal-card-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #4A4540;
+        margin-bottom: 12px;
+    }
+
+    .kk-modal-card-tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .kk-modal-card-tag {
+        background: #F4F1ED;
+        color: #6B6560;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+
+    /* 大图查看弹窗样式 */
+    .kk-image-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        padding: 20px;
+    }
+
+    .kk-image-modal-overlay.active {
+        display: flex;
+    }
+
+    .kk-image-modal {
+        position: relative;
+        max-width: 90vw;
+        max-height: 90vh;
+    }
+
+    .kk-image-modal-img {
+        max-width: 100%;
+        max-height: 90vh;
+        object-fit: contain;
+    }
+    .kk-image-modal-img-container {
+        display: flex; justify-content: center; align-items: center;
+        max-width: 100%; max-height: 90vh;
+    }
+
+    .kk-image-modal-close {
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: none;
+        border: none;
+        font-size: 36px;
+        color: #FDFCFA;
+        cursor: pointer;
+        line-height: 1;
+        transition: all 0.3s ease;
+    }
+
+    .kk-image-modal-close:hover {
+        color: #9AA8B0;
+        transform: rotate(90deg);
+    }
+
+    /* 风格卡片行 */
+    .kk-style-row {
+        display: flex;
+        gap: 32px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    /* 风格卡片 */
+    .kk-style-card {
+        background: #FDFCFA;
+        border-radius: 32px;
+        padding: 24px;
+        width: 320px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .kk-style-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .kk-style-card-image-container {
+        width: 100%;
+        height: 400px;
+        background: #F4F1ED;
+        border-radius: 24px;
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
+
+    .kk-style-card-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+    }
+
+    .kk-style-card-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #4A4540;
+        text-align: center;
+        margin: 0 0 12px 0;
+    }
+
+    .kk-style-card-hint {
+        font-size: 16px;
+        color: #A8A29C;
+        text-align: center;
+    }
+</style>
+
+<script>
+    // 成套真人实拍穿搭数据（抖音、小红书男生穿搭博主风格）
+    const realOutfitSets = [
+        // 运动活力 - 参考李灿荣美式风格
+        {
+            id: 'sport-set-1',
+            image: '/static/assets/male/超轻冰丝凉感速干连帽美式 户外山系 防晒服.jpg',
+            title: '美式街头运动套装',
+            tags: ['成套穿搭', '真人实拍', '美式风格', '李灿荣同款'],
+            style: 'sporty'
+        },
+        {
+            id: 'sport-set-2',
+            image: '/static/assets/male/美式灰色假两件上衣.jpg',
+            title: '美式休闲运动套装',
+            tags: ['成套穿搭', '真人实拍', '街头潮流', '舒适透气'],
+            style: 'sporty'
+        },
+        {
+            id: 'sport-set-3',
+            image: '/static/assets/male/紫色抽绳运动长裤.jpg',
+            title: '街头运动套装',
+            tags: ['成套穿搭', '真人实拍', '潮流穿搭', '个性风格'],
+            style: 'sporty'
+        },
+        {
+            id: 'sport-set-4',
+            image: '/static/assets/male/做旧机器人小丑个性高街风百搭潮流毛衣卫衣链.jpg',
+            title: '高街运动套装',
+            tags: ['成套穿搭', '真人实拍', '高街风格', '潮流穿搭'],
+            style: 'sporty'
+        },
+        // 清爽韩系 - 参考狒狒日系风格
+        {
+            id: 'korean-set-1',
+            image: '/static/assets/male/复古棕色格薄外套.jpg',
+            title: '韩系风衣套装',
+            tags: ['成套穿搭', '真人实拍', '韩系风格', '狒狒同款'],
+            style: 'korean'
+        },
+        {
+            id: 'korean-set-2',
+            image: '/static/assets/male/复古休闲风白蓝拼色德训鞋.jpg',
+            title: '韩系休闲套装',
+            tags: ['成套穿搭', '真人实拍', '韩系欧巴', '日常穿搭'],
+            style: 'korean'
+        },
+        {
+            id: 'korean-set-3',
+            image: '/static/assets/male/复古工装风黑灰杂色衬衫外套.jpg',
+            title: '韩系工装套装',
+            tags: ['成套穿搭', '真人实拍', '工装风格', '潮流穿搭'],
+            style: 'korean'
+        },
+        {
+            id: 'korean-set-4',
+            image: '/static/assets/male/极简通勤风燕麦半高领针织毛衣.jpg',
+            title: '韩系通勤套装',
+            tags: ['成套穿搭', '真人实拍', '通勤风', '职场穿搭'],
+            style: 'korean'
+        },
+        // 休闲日常 - 成套穿搭
+        {
+            id: 'casual-set-1',
+            image: '/static/assets/female/Y2K甜酷天使兔子短款白T.jpg',
+            title: '甜酷日常套装',
+            tags: ['成套穿搭', '真人实拍', '甜酷风格', '夏日穿搭'],
+            style: 'casual'
+        },
+        {
+            id: 'casual-set-2',
+            image: '/static/assets/female/法式田园碎花鱼骨短上衣.jpg',
+            title: '法式优雅套装',
+            tags: ['成套穿搭', '真人实拍', '法式风格', '温柔气质'],
+            style: 'elegant'
+        },
+        {
+            id: 'casual-set-3',
+            image: '/static/assets/female/港风复古水洗微喇牛仔裤.jpg',
+            title: '港风复古套装',
+            tags: ['成套穿搭', '真人实拍', '复古风格', '街头潮流'],
+            style: 'street'
+        },
+        {
+            id: 'casual-set-4',
+            image: '/static/assets/female/新中式国风藏青熊猫帆布鞋.jpg',
+            title: '新中式套装',
+            tags: ['成套穿搭', '真人实拍', '新中式', '国风穿搭'],
+            style: 'japanese'
+        }
+    ];
+
+    // 按风格分组的数据
+    const outfitsByStyle = {
+        sporty: realOutfitSets.filter(o => o.style === 'sporty'),
+        korean: realOutfitSets.filter(o => o.style === 'korean'),
+        casual: realOutfitSets.filter(o => o.style === 'casual'),
+        elegant: realOutfitSets.filter(o => o.style === 'elegant'),
+        street: realOutfitSets.filter(o => o.style === 'street'),
+        japanese: realOutfitSets.filter(o => o.style === 'japanese')
+    };
+
+    // 风格名称映射
+    const styleNames = {
+        'casual': '休闲日常',
+        'elegant': '优雅气质',
+        'sporty': '运动活力',
+        'business': '商务通勤',
+        'street': '街头潮流',
+        'sweet': '甜美可爱',
+        'japanese': '青春日系',
+        'korean': '清爽韩系'
+    };
+
+    // 风格文件夹映射(主映射;失败时会尝试备选,见 _tryFindImages)
+    const styleFolderMap = {
+        'casual': '休闲日常',     // 女: 女休闲日常春 / 男: 男日常春
+        'elegant': '优雅气质',
+        'sporty': '运动活力',      // 女: 女运动活力春 / 男: 男运动风春
+        'street': '街头潮流',
+        'sweet': '甜美可爱',
+        'japanese': '青春日系',
+        'korean': '韩系',
+        'business': '商务通勤'
+    };
+
+    // 风格文件夹备选映射(主映射找不到时,挨个尝试备选)
+    const styleFolderFallbacks = {
+        // "休闲日常" 男士目录叫"日常",女士目录叫"休闲日常"——按性别自动选
+        'casual': {
+            '女': ['休闲日常', '日常'],
+            '男': ['日常', '休闲日常'],
+        },
+        // "运动活力" 女士目录叫"运动活力",男士目录叫"运动风"
+        'sporty': {
+            '女': ['运动活力', '运动风'],
+            '男': ['运动风', '运动活力'],
+        },
+    };
+
+    // 男生"商务通勤"目录不存在,共用"男优雅气质"的图片(视觉效果一致:衬衫+西裤/西装)
+    const maleBusinessFallback = {
+        'business': '优雅气质',
+    };
+
+    // 从后端获取的图片数据
+    let allRecommendationImages = {};
+
+    // 从后端API获取推荐穿搭图片
+    async function loadRecommendationImages() {
+        try {
+            const response = await fetch('/api/recommendation-images');
+            const data = await response.json();
+            if (data.success) {
+                allRecommendationImages = data.images;
+                console.log('成功加载推荐穿搭图片:', allRecommendationImages);
+            }
+        } catch (e) {
+            console.error('加载推荐穿搭图片失败:', e);
+        }
+    }
+
+    // 尝试多种文件夹名格式获取图片
+    function findImagesForStyleAndSeason(gender, style, season) {
+        // 候选风格名列表(按优先级排序)
+        const folderCandidates = [];
+        // 0) 男生"商务通勤"无目录,共用"优雅气质"
+        if (gender === '男' && maleBusinessFallback[style]) {
+            folderCandidates.push(maleBusinessFallback[style]);
+        }
+        // 1) 当前性别的 fallback 列表(如"休闲日常"男士用"日常"优先)
+        const fb = styleFolderFallbacks[style];
+        if (fb && fb[gender]) {
+            for (const n of fb[gender]) folderCandidates.push(n);
+        }
+        // 2) 主映射
+        folderCandidates.push(styleFolderMap[style] || styleNames[style] || style);
+        // 3) 风格名本身(兜底)
+        folderCandidates.push(style);
+
+        // 在多个候选风格名(男士商务通勤→优雅气质 等)里挨个找,直到有图
+        for (const candidateStyleName of folderCandidates) {
+            const imgs = _tryFindImages(gender, candidateStyleName, season);
+            if (imgs && imgs.length > 0) return imgs;
+        }
+        return [];
+    }
+
+    // 实际按候选风格名查图
+    function _tryFindImages(gender, styleNameInFolder, season) {
+        if (season) {
+            const possibleFolderNames = [
+                `${gender} ${styleNameInFolder}-${season}`,
+                `${gender}${styleNameInFolder}${season}`,
+                `${gender} ${styleNameInFolder}${season}`,
+                `${gender}${styleNameInFolder}-${season}`,
+            ];
+            for (const folderName of possibleFolderNames) {
+                const images = allRecommendationImages[folderName];
+                if (images && images.length > 0) return images;
+            }
+        } else {
+            const allSeasonImages = [];
+            for (const s of ['春', '夏', '秋', '冬']) {
+                const possibleFolderNames = [
+                    `${gender} ${styleNameInFolder}-${s}`,
+                    `${gender}${styleNameInFolder}${s}`,
+                    `${gender} ${styleNameInFolder}${s}`,
+                    `${gender}${styleNameInFolder}-${s}`,
+                ];
+                for (const folderName of possibleFolderNames) {
+                    const images = allRecommendationImages[folderName];
+                    if (images && images.length > 0) {
+                        allSeasonImages.push(...images);
+                        break;
+                    }
+                }
+            }
+            return allSeasonImages;
+        }
+        return [];
+    }
+
+    // 从文件夹获取随机图片
+    function getRandomImageFromFolder(folderName) {
+        const images = allRecommendationImages[folderName];
+        if (images && images.length > 0) {
+            return images[Math.floor(Math.random() * images.length)];
+        }
+        // 如果找不到，返回占位图
+        return 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"400\" height=\"400\"%3E%3Crect fill=\"%23F4F1ED\" width=\"400\" height=\"400\"/%3E%3Ctext x=\"50%25\" y=\"50%25\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"20\" fill=\"%238A847E\"%3E暂无图片%3C/text%3E%3C/svg%3E';
+    }
+
+    // 渲染首页
+    async function renderHomePage() {
+        // 先加载图片数据
+        if (Object.keys(allRecommendationImages).length === 0) {
+            await loadRecommendationImages();
+        }
+        
+        const grid = document.getElementById('recommendationGrid');
+        
+        // 从新手引导读取用户选择的性别和风格
+        let userGender = '男';
+        let userStyles = ['casual', 'elegant'];
+        
+        try {
+            const onboardingData = JSON.parse(localStorage.getItem('onboardingData') || '{}');
+            if (onboardingData.gender) {
+                userGender = onboardingData.gender === 'male' ? '男' : '女';
+            }
+            if (onboardingData.styles && onboardingData.styles.length > 0) {
+                userStyles = onboardingData.styles;
+            }
+        } catch (e) {
+            console.log('读取新手引导数据失败，使用默认值');
+        }
+        
+        let html = '<div class="kk-style-row">';
+        
+        // 展示用户选择的风格，横向并排
+        userStyles.forEach(style => {
+            const styleName = styleNames[style] || style;
+            // 获取该风格春夏秋冬所有图片，随机取一张作为封面
+            const allImages = findImagesForStyleAndSeason(userGender, style, null);
+            const coverImage = allImages.length > 0 ? allImages[Math.floor(Math.random() * allImages.length)] : '';
+            
+            html += `
+                <div class="kk-style-card" onclick="openOutfitModal('${style}', '${userGender}')">
+                    <div class="kk-style-card-image-container">
+                        <img src="${coverImage || 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"400\" height=\"400\"%3E%3Crect fill=\"%23F4F1ED\" width=\"400\" height=\"400\"/%3E%3Ctext x=\"50%25\" y=\"50%25\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"20\" fill=\"%238A847E\"%3E暂无图片%3C/text%3E%3C/svg%3E'}" 
+                             alt="${styleName}" 
+                             class="kk-style-card-image">
+                    </div>
+                    <div class="kk-style-card-title">${styleName}</div>
+                    <div class="kk-style-card-hint">点击查看更多</div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        grid.innerHTML = html;
+    }
+
+    // 当前弹窗风格和性别
+    let currentModalStyle = '';
+    let currentModalStyleCn = '';  // 中文显示名(给朴素贝叶斯 API 用)
+    let currentModalGender = '';
+    let currentModalSeason = '';
+    let selectedSeasonForApply = '';
+
+    // 打开穿搭详情弹窗
+    async function openOutfitModal(style, gender) {
+        // 确保图片已加载
+        if (Object.keys(allRecommendationImages).length === 0) {
+            await loadRecommendationImages();
+        }
+
+        currentModalStyle = style;
+        // 同时存中文名(供朴素贝叶斯 API 匹配目录)
+        currentModalStyleCn = styleNames[style] || style;
+        currentModalGender = gender;
+        currentModalSeason = '';
+        selectedSeasonForApply = '';
+
+        const modal = document.getElementById('outfitModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalContent = document.getElementById('modalContent');
+
+        const styleName = styleNames[style] || style;
+        modalTitle.textContent = `${styleName}穿搭`;
+
+        // 弹窗内容：季节筛选 + 穿搭展示
+        modalContent.innerHTML = `
+            <div class="kk-modal-filter">
+                <div class="kk-modal-filter-title">选择季节</div>
+                <div class="kk-modal-season-buttons">
+                    <button class="kk-season-btn ${selectedSeasonForApply === '' ? 'active' : ''}" onclick="selectSeason('')">全部</button>
+                    <button class="kk-season-btn ${selectedSeasonForApply === '春' ? 'active' : ''}" onclick="selectSeason('春')">春</button>
+                    <button class="kk-season-btn ${selectedSeasonForApply === '夏' ? 'active' : ''}" onclick="selectSeason('夏')">夏</button>
+                    <button class="kk-season-btn ${selectedSeasonForApply === '秋' ? 'active' : ''}" onclick="selectSeason('秋')">秋</button>
+                    <button class="kk-season-btn ${selectedSeasonForApply === '冬' ? 'active' : ''}" onclick="selectSeason('冬')">冬</button>
+                </div>
+                <button class="kk-apply-btn" onclick="applySeasonFilter()">应用筛选</button>
+            </div>
+            <div class="kk-modal-grid" id="modalGrid">
+                ${renderModalOutfits()}
+            </div>
+        `;
+
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        // 标记已收藏的卡片
+        await markFavoritedOutfits();
+    }
+
+    // 把已经收藏过的图片按钮点亮
+    async function markFavoritedOutfits() {
+        const userId = await getOrCreateGuestUserId();
+        if (!userId) return;
+        try {
+            const res = await fetch(`/api/favorites/${userId}`);
+            const data = await res.json();
+            if (!data.success || !data.favorites) return;
+            const favoritedImages = new Set();
+            data.favorites.forEach(fav => {
+                if (fav.outfit_combo && fav.weather_context && fav.weather_context.source === 'outfit_card') {
+                    favoritedImages.add(fav.weather_context.image);
+                }
+            });
+            document.querySelectorAll('.kk-modal-card .kk-fav-btn').forEach(btn => {
+                // 通过 onClick 参数里嵌入的 image 标记匹配
+                const onclick = btn.getAttribute('onclick') || '';
+                const match = onclick.match(/'([^']+)'/);
+                if (match && favoritedImages.has(match[1])) {
+                    btn.classList.add('favorited');
+                }
+            });
+        } catch (e) {
+            console.error('加载已收藏状态失败:', e);
+        }
+    }
+
+    // 选择季节（不立即应用）
+    function selectSeason(season) {
+        selectedSeasonForApply = season;
+        
+        // 更新按钮状态
+        document.querySelectorAll('.kk-season-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+    }
+
+    // 应用季节筛选 - 调用朴素贝叶斯 API 重新推荐
+    async function applySeasonFilter() {
+        currentModalSeason = selectedSeasonForApply;
+
+        // ── 调后端朴素贝叶斯接口,按风格+季节重新筛图 ──
+        const modalGrid = document.getElementById('modalGrid');
+        modalGrid.innerHTML = '<div class="kk-loading">AI 正在用朴素贝叶斯算法推荐...</div>';
+
+        try {
+            const url = `/api/recommend-by-style-season?style=${encodeURIComponent(currentModalStyleCn)}&season=${encodeURIComponent(currentModalSeason || '春')}&gender=${encodeURIComponent(currentModalGender)}`;
+            const resp = await fetch(url);
+            const data = await resp.json();
+
+            if (data.success && data.images && data.images.length > 0) {
+                // ── 用 ML 返回的结果重新渲染 ──
+                modalGrid.innerHTML = renderMlOutfits(data.images, data);
+            } else if (data.success && (!data.images || data.images.length === 0)) {
+                // 该风格+季节没图 → 兜底显示"全部季节"
+                modalGrid.innerHTML = '<div class="kk-no-results">该季节暂无 ML 推荐的穿搭,试试其他季节</div>';
+            } else {
+                modalGrid.innerHTML = `<div class="kk-no-results">推荐失败:${data.error || '未知错误'}</div>`;
+            }
+        } catch (e) {
+            console.error('朴素贝叶斯推荐失败:', e);
+            modalGrid.innerHTML = `<div class="kk-no-results">调用 ML 接口失败:${e.message}</div>`;
+        }
+
+        // 重新标记已收藏的卡片
+        await markFavoritedOutfits();
+    }
+
+    // 渲染 ML 推荐结果(图 + 类别概率提示)
+    function renderMlOutfits(images, mlData) {
+        const probsHtml = (mlData.category_probs || []).slice(0, 3).map(p =>
+            `<span class="kk-ml-tag">${p.category} ${(p.probability * 100).toFixed(1)}%</span>`
+        ).join('');
+
+        const headerHtml = `
+            <div class="kk-ml-header" style="grid-column: 1 / -1; padding: 8px 0; border-bottom: 1px dashed #eee; margin-bottom: 8px;">
+                <div style="font-size: 13px; color: #6b7280;">
+                    <strong style="color: #ec4899;">${mlData.algorithm || '朴素贝叶斯'}</strong> ・ ${mlData.weather || ''} ・ ${mlData.temperature || ''}°C
+                </div>
+                <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
+                    各类别推荐概率: ${probsHtml}
+                </div>
+            </div>
+        `;
+
+        const cardsHtml = images.map((img, index) => `
+            <div class="kk-modal-card">
+                <button class="kk-fav-btn" onclick="event.stopPropagation(); favoriteOutfit('${img}', '${currentModalGender}', '${currentModalStyle}', '${currentModalSeason || ''}', this)" title="收藏整套穿搭">
+                    <span class="kk-fav-icon"></span>
+                </button>
+                <div class="kk-modal-card-image-container" onclick="openImageModal('${img}')">
+                    <img src="${img}" alt="ML推荐${index + 1}" class="kk-modal-card-image">
+                </div>
+                <div class="kk-modal-card-content">
+                    <div class="kk-modal-card-title">ML 推荐 #${index + 1}</div>
+                    <div class="kk-modal-card-tags">
+                        <span class="kk-modal-card-tag">${currentModalGender}生</span>
+                        <span class="kk-modal-card-tag">${currentModalStyleCn || currentModalStyle}</span>
+                        <span class="kk-modal-card-tag">${currentModalSeason}</span>
+                        <span class="kk-modal-card-tag" style="background: #ec4899; color: white;">AI 排序</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        return headerHtml + cardsHtml;
+    }
+
+    // 渲染弹窗内的穿搭
+    function renderModalOutfits() {
+        const allImages = findImagesForStyleAndSeason(currentModalGender, currentModalStyle, currentModalSeason);
+        
+        if (allImages.length === 0) {
+            return '<div class="kk-no-results">暂无该季节的穿搭</div>';
+        }
+        
+        return allImages.map((img, index) => `
+            <div class="kk-modal-card">
+                <button class="kk-fav-btn" onclick="event.stopPropagation(); favoriteOutfit('${img}', '${currentModalGender}', '${currentModalStyle}', '${currentModalSeason || ''}', this)" title="收藏整套穿搭">
+                    <span class="kk-fav-icon"></span>
+                </button>
+                <div class="kk-modal-card-image-container" onclick="openImageModal('${img}')">
+                    <img src="${img}" alt="穿搭${index + 1}" class="kk-modal-card-image">
+                </div>
+                <div class="kk-modal-card-content">
+                    <div class="kk-modal-card-title">穿搭${index + 1}</div>
+                    <div class="kk-modal-card-tags">
+                        <span class="kk-modal-card-tag">${currentModalGender}生</span>
+                        <span class="kk-modal-card-tag">${styleNames[currentModalStyle]}</span>
+                        ${currentModalSeason ? `<span class="kk-modal-card-tag">${currentModalSeason}季</span>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // 关闭穿搭详情弹窗
+    function closeOutfitModal() {
+        const modal = document.getElementById('outfitModal');
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // 点击遮罩关闭
+    function closeModal(event) {
+        if (event.target.id === 'outfitModal') {
+            closeOutfitModal();
+        }
+    }
+
+    // 打开大图查看(动态创建 img 元素, 避免空 src 加载错误)
+    function openImageModal(imageSrc) {
+        const modal = document.getElementById('imageModal');
+        const container = document.getElementById('imageModalImgContainer');
+        // 清理上一次的 img
+        container.replaceChildren();
+        // 创建新 img
+        const img = document.createElement('img');
+        img.id = 'imageModalImg';
+        img.alt = '大图查看';
+        img.className = 'kk-image-modal-img';
+        img.src = imageSrc;
+        container.appendChild(img);
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        // 记录穿搭浏览
+        recordBrowse('outfit', null, '穿搭方案', imageSrc, {
+            style: currentModalStyle,
+            gender: currentModalGender,
+            season: currentModalSeason || ''
+        });
+    }
+
+    // 关闭大图查看
+    function closeImageModal() {
+        const modal = document.getElementById('imageModal');
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+        // 关闭时清空容器, 释放 img 资源, 避免下次打开前一直占用
+        const container = document.getElementById('imageModalImgContainer');
+        if (container) container.replaceChildren();
+    }
+
+
+    // ===== 收藏功能 =====
+    // 获取或创建游客 user_id（保存在 localStorage）
+    async function getOrCreateGuestUserId() {
+        let userId = localStorage.getItem('favoriteUserId');
+        if (userId) return parseInt(userId, 10);
+        try {
+            const res = await fetch('/api/auth/guest', { method: 'POST' });
+            const data = await res.json();
+            if (data.success && data.user_id) {
+                localStorage.setItem('favoriteUserId', data.user_id);
+                return data.user_id;
+            }
+        } catch (e) {
+            console.error('创建游客用户失败:', e);
+        }
+        return null;
+    }
+
+    // 记录浏览历史
+    async function recordBrowse(itemType, itemId, title, imageUrl, meta) {
+        const userId = await getOrCreateGuestUserId();
+        if (!userId) return;
+        try {
+            await fetch('/api/browse-history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    item_type: itemType,
+                    item_id: itemId,
+                    title: title,
+                    image_url: imageUrl,
+                    meta: meta || {}
+                })
+            });
+        } catch (e) { console.error('记录浏览失败:', e); }
+    }
+
+    // 收藏整套穿搭（使用图片路径作为 outfit_combo 的标识）
+    async function favoriteOutfit(imagePath, gender, style, season, btn) {
+        const userId = await getOrCreateGuestUserId();
+        if (!userId) {
+            showToast('操作失败：无法创建用户', 'error');
+            return;
+        }
+
+        // 防止重复点击
+        if (btn.disabled) return;
+        btn.disabled = true;
+
+        const signature = `outfit_card::${imagePath}`;
+
+        try {
+            if (btn.classList.contains('favorited')) {
+                // 取消收藏
+                const res = await fetch('/api/favorites/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, signature })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    btn.classList.remove('favorited');
+                    showToast('已取消收藏', 'success');
+                } else {
+                    showToast('取消失败：' + (data.error || '未知错误'), 'error');
+                }
+            } else {
+                // 收藏
+                const outfitCombo = [imagePath];
+                const weatherContext = {
+                    source: 'outfit_card',
+                    image: imagePath,
+                    gender: gender,
+                    style: style,
+                    season: season,
+                    savedAt: new Date().toISOString()
+                };
+
+                const res = await fetch('/api/favorites', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        outfit_combo: outfitCombo,
+                        weather_context: weatherContext
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    btn.classList.add('favorited');
+                    showToast(data.duplicate ? '已在收藏中 ❤' : '已加入收藏 ❤', 'success');
+                } else {
+                    showToast('收藏失败：' + (data.error || '未知错误'), 'error');
+                }
+            }
+        } catch (e) {
+            console.error('操作失败:', e);
+            showToast('操作失败：' + e.message, 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // 轻量提示
+    function showToast(message, type) {
+        let toast = document.getElementById('kk-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'kk-toast';
+            toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);padding:12px 24px;background:rgba(74,69,64,0.92);color:#FDFCFA;border-radius:24px;font-size:14px;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.style.background = type === 'error' ? 'rgba(201,118,118,0.95)' : 'rgba(74,69,64,0.92)';
+        toast.style.opacity = '1';
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 1800);
+    }
+
+
+    // 页面加载时渲染 + 弹出新手引导
+    document.addEventListener('DOMContentLoaded', function() {
+        renderHomePage();
+        if (typeof checkFirstVisit === 'function') {
+            checkFirstVisit();
+        }
+    });
+
+    // 新手引导完成后, 重新渲染首页风格卡(让用户立即看到自己选的风格)
+    window.addEventListener('onboarding-finished', function() {
+        renderHomePage();
+    });
+</script>
+{% endblock %}
