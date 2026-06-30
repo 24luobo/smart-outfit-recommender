@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}我的收藏 - 智能穿搭推荐系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>我的收藏</h1>
+        <p>收藏的穿搭方案随时查看</p>
+    </div>
+</div>
+
+<div class="favorites-section">
+    <div class="container">
+        <div class="user-selector">
+            <label>选择用户</label>
+            <select id="favoriteUserSelect">
+                <option value="">请先创建用户</option>
+            </select>
+            <button id="loadFavorites" class="btn btn-primary">查看收藏</button>
+        </div>
+
+        <div id="favoritesContainer" class="favorites-grid" style="display: none;"></div>
+
+        <div id="noFavorites" class="no-data">
+            <div class="no-data-icon">💔</div>
+            <h3>还没有收藏</h3>
+            <p>去推荐页面收藏喜欢的穿搭吧</p>
+            <a href="/recommendation" class="btn btn-primary">去获取推荐</a>
+        </div>
+    </div>
+</div>
+
+<!-- 大图查看器 -->
+<div class="kk-image-modal-overlay" id="favImageModal" onclick="closeFavImageModal()">
+    <div class="kk-image-modal" onclick="event.stopPropagation()">
+        <button class="kk-image-modal-close" onclick="closeFavImageModal()">×</button>
+        <div id="favImageModalImgContainer" class="kk-image-modal-img-container"></div>
+    </div>
+</div>
+
+<style>
+    .favorite-image-wrap {
+        width: 100%;
+        aspect-ratio: 1/1;
+        background: #F4F1ED;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 8px;
+        cursor: zoom-in;
+        position: relative;
+    }
+    .favorite-image-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s;
+    }
+    .favorite-image-wrap:hover img {
+        transform: scale(1.05);
+    }
+    .favorite-image-wrap::after {
+        content: '🔍';
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        background: rgba(74, 69, 64, 0.7);
+        color: #FDFCFA;
+        border-radius: 50%;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    .favorite-image-wrap:hover::after {
+        opacity: 1;
+    }
+
+    /* 大图查看器 */
+    .kk-image-modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 20px;
+    }
+    .kk-image-modal-overlay.active { display: flex; }
+    .kk-image-modal {
+        position: relative;
+        max-width: 95vw;
+        max-height: 95vh;
+    }
+    .kk-image-modal-close {
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+    }
+    .kk-image-modal-img {
+        max-width: 95vw;
+        max-height: 90vh;
+        object-fit: contain;
+        border-radius: 8px;
+        background: #FDFCFA;
+    }
+    .kk-image-modal-img-container {
+        display: flex; justify-content: center; align-items: center;
+        max-width: 100%; max-height: 90vh;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function getOrCreateGuestUserId() {
+    let userId = localStorage.getItem('favoriteUserId');
+    if (userId) return parseInt(userId, 10);
+    try {
+        const res = await fetch('/api/auth/guest', { method: 'POST' });
+        const data = await res.json();
+        if (data.success && data.user_id) {
+            localStorage.setItem('favoriteUserId', data.user_id);
+            return data.user_id;
+        }
+    } catch (e) {
+        console.error('创建游客用户失败:', e);
+    }
+    return null;
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    // 自动用收藏 user_id 加载
+    const userId = await getOrCreateGuestUserId();
+    if (userId) {
+        const select = document.getElementById('favoriteUserSelect');
+        if (select) {
+            select.innerHTML = `<option value="${userId}">当前用户 (${userId})</option>`;
+            select.value = String(userId);
+        }
+    }
+    loadFavorites();
+});
+
+document.getElementById('loadFavorites').addEventListener('click', loadFavorites);
+
+async function loadFavorites() {
+    let userId = document.getElementById('favoriteUserSelect').value;
+    if (!userId) {
+        userId = await getOrCreateGuestUserId();
+    }
+    if (!userId) {
+        alert('请先选择用户');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/favorites/${userId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            displayFavorites(result.favorites);
+        } else {
+            alert('加载收藏失败：' + result.error);
+        }
+    } catch (error) {
+        console.error('加载收藏失败:', error);
+    }
+}
+
+function displayFavorites(favorites) {
+    const container = document.getElementById('favoritesContainer');
+    const noFavorites = document.getElementById('noFavorites');
+    
+    if (favorites.length === 0) {
+        container.style.display = 'none';
+        noFavorites.style.display = 'block';
+        return;
+    }
+    
+    noFavorites.style.display = 'none';
+    container.style.display = 'grid';
+    
+    container.innerHTML = favorites.map((fav, index) => {
+        const ctx = fav.weather_context || {};
+        const isOutfit = ctx.source === 'outfit_card';
+        const isItem = ctx.source === 'clothing_card';
+        let imgUrl = '';
+        if (isOutfit && ctx.image) {
+            imgUrl = ctx.image;
+        } else if (isItem && ctx.image_path) {
+            imgUrl = '/' + ctx.image_path;
+        }
+        const preview = imgUrl
+            ? `<div class="favorite-image-wrap" onclick="openFavImageModal('${imgUrl.replace(/'/g, "\\'")}')">
+                 <img src="${imgUrl}" alt="收藏图片" onerror="this.parentElement.style.display='none'">
+               </div>`
+            : '';
+        const title = ctx.name || (isOutfit ? '穿搭方案' : (isItem ? `单品 #${ctx.clothing_id}` : '收藏'));
+        const subtitle = [ctx.style, ctx.category, ctx.season, ctx.gender ? ctx.gender + '生' : ''].filter(Boolean).join(' · ');
+        return `
+        <div class="favorite-card">
+            <div class="favorite-header">
+                <span class="favorite-date">${new Date(fav.created_at).toLocaleDateString('zh-CN')}</span>
+                <button class="delete-btn" onclick="deleteFavorite(${fav.id})">🗑️</button>
+            </div>
+            <div class="favorite-content">
+                ${preview}
+                <div style="font-weight:600;color:#4A4540;margin:8px 0 4px;">${title}</div>
+                ${subtitle ? `<div style="font-size:12px;color:#8A847E;margin-bottom:6px;">${subtitle}</div>` : ''}
+                <div class="favorite-items">
+                    收藏项: ${fav.outfit_combo.length} 个
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+function openFavImageModal(url) {
+    const modal = document.getElementById('favImageModal');
+    const container = document.getElementById('favImageModalImgContainer');
+    container.replaceChildren();
+    const img = document.createElement('img');
+    img.id = 'favImageModalImg';
+    img.alt = '大图';
+    img.className = 'kk-image-modal-img';
+    img.src = url;
+    container.appendChild(img);
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeFavImageModal() {
+    const modal = document.getElementById('favImageModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    const container = document.getElementById('favImageModalImgContainer');
+    if (container) container.replaceChildren();
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeFavImageModal();
+});
+
+async function deleteFavorite(favoriteId) {
+    if (!confirm('确定要删除这个收藏吗？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/favorites/${favoriteId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            loadFavorites();
+        } else {
+            alert('删除失败：' + result.error);
+        }
+    } catch (error) {
+        alert('删除失败：' + error.message);
+    }
+}
+</script>
+{% endblock %}
