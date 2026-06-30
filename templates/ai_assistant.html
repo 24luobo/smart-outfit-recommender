@@ -1,0 +1,631 @@
+{% extends "base.html" %}
+
+{% block title %}AI穿搭助手 - 智能穿搭推荐系统{% endblock %}
+
+{% block content %}
+<div class="ai-assistant-container">
+    <!-- 头部 -->
+    <div class="ai-header">
+        <div class="ai-avatar">
+            <span class="ai-icon">✨</span>
+        </div>
+        <div class="ai-info">
+            <h2 class="ai-name">AI穿搭助手</h2>
+            <p class="ai-status">在线 · 随时为你服务</p>
+        </div>
+        <div class="ai-provider-picker">
+            <select id="providerSelect" class="provider-select" onchange="onProviderChange()">
+                <option value="zhipu" selected>智谱 GLM(免费)</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="qwen">通义千问</option>
+                <option value="openai">OpenAI</option>
+                <option value="ollama">Ollama(本地免费)</option>
+            </select>
+            <span id="providerStatus" class="provider-status">检测中…</span>
+        </div>
+    </div>
+
+    <!-- 快捷问题 -->
+    <div class="quick-questions">
+        <p class="quick-title">试试问我：</p>
+        <div class="quick-buttons">
+            <button class="quick-btn" onclick="sendQuickMessage('今天天气适合穿什么？')">
+                今天天气适合穿什么？
+            </button>
+            <button class="quick-btn" onclick="sendQuickMessage('约会怎么穿才好看？')">
+                约会怎么穿才好看？
+            </button>
+            <button class="quick-btn" onclick="sendQuickMessage('职场穿搭有什么建议？')">
+                职场穿搭有什么建议？
+            </button>
+            <button class="quick-btn" onclick="sendQuickMessage('小个子怎么搭配显高？')">
+                小个子怎么搭配显高？
+            </button>
+        </div>
+    </div>
+
+    <!-- 聊天消息区域 -->
+    <div class="chat-messages" id="chatMessages">
+        <!-- 欢迎消息 -->
+        <div class="message ai-message">
+            <div class="message-avatar">
+                <span class="avatar-icon">✨</span>
+            </div>
+            <div class="message-content">
+                <p>你好！我是你的AI穿搭助手 👋</p>
+                <p>我可以帮你：</p>
+                <ul>
+                    <li>根据场合推荐穿搭方案</li>
+                    <li>提供色彩搭配建议</li>
+                    <li>解答穿搭疑问</li>
+                    <li>根据身材特点推荐合适的款式</li>
+                </ul>
+                <p>有什么穿搭问题，随时问我吧！</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 输入区域 -->
+    <div class="chat-input-area">
+        <div class="input-wrapper">
+            <textarea 
+                id="messageInput" 
+                class="chat-input" 
+                placeholder="输入你的穿搭问题..."
+                rows="1"
+                onkeydown="handleKeyDown(event)"
+                oninput="autoResize(this)"
+            ></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                <span class="send-icon">➤</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.ai-assistant-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    height: calc(100vh - 140px);
+    display: flex;
+    flex-direction: column;
+}
+
+/* 头部 */
+.ai-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: #FDFCFA;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.ai-avatar {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+}
+
+.ai-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: #4A4540;
+    margin: 0 0 4px 0;
+}
+
+.ai-status {
+    font-size: 14px;
+    color: #A8B8AA;
+    margin: 0;
+}
+
+.ai-provider-picker {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+.provider-select {
+    padding: 6px 12px;
+    border-radius: 16px;
+    border: 1px solid #E8E5E0;
+    background: #FDFCFA;
+    font-size: 13px;
+    color: #4A4540;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s;
+}
+.provider-select:hover {
+    border-color: #9AA8B0;
+}
+.provider-select:focus {
+    border-color: #9AA8B0;
+    box-shadow: 0 0 0 3px rgba(154, 168, 176, 0.15);
+}
+.provider-status {
+    font-size: 11px;
+    color: #8A847E;
+}
+.provider-status.ok {
+    color: #A8B8AA;
+}
+.provider-status.off {
+    color: #C97676;
+}
+
+/* 快捷问题 */
+.quick-questions {
+    margin-bottom: 20px;
+}
+
+.quick-title {
+    font-size: 14px;
+    color: #8A847E;
+    margin-bottom: 12px;
+}
+
+.quick-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.quick-btn {
+    padding: 10px 16px;
+    background: #FDFCFA;
+    border: 1px solid #E8E5E0;
+    border-radius: 20px;
+    font-size: 14px;
+    color: #6B6560;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quick-btn:hover {
+    background: #F4F1ED;
+    border-color: #9AA8B0;
+    color: #4A4540;
+    transform: translateY(-2px);
+}
+
+/* 聊天消息区域 */
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.message {
+    display: flex;
+    gap: 12px;
+    max-width: 80%;
+}
+
+.user-message {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.ai-message {
+    align-self: flex-start;
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ai-message .message-avatar {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+}
+
+.user-message .message-avatar {
+    background: #9AA8B0;
+}
+
+.avatar-icon {
+    font-size: 20px;
+}
+
+.message-content {
+    padding: 14px 18px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.ai-message .message-content {
+    background: #FDFCFA;
+    color: #4A4540;
+    border-bottom-left-radius: 4px;
+}
+
+.user-message .message-content {
+    background: #9AA8B0;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message-content p {
+    margin: 0 0 8px 0;
+}
+
+.message-content p:last-child {
+    margin-bottom: 0;
+}
+
+.message-content ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.message-content li {
+    margin: 4px 0;
+}
+
+/* 输入区域 */
+.chat-input-area {
+    padding-top: 20px;
+    border-top: 1px solid #E8E5E0;
+}
+
+.input-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 14px 18px;
+    background: #FDFCFA;
+    border: 1px solid #E8E5E0;
+    border-radius: 24px;
+    font-size: 15px;
+    color: #4A4540;
+    resize: none;
+    max-height: 120px;
+    font-family: inherit;
+}
+
+.chat-input:focus {
+    outline: none;
+    border-color: #9AA8B0;
+}
+
+.send-btn {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #9AA8B0, #A8B8AA);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.send-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(154, 168, 176, 0.4);
+}
+
+.send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.send-icon {
+    font-size: 18px;
+    color: white;
+}
+
+/* 加载动画 */
+.typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 14px 18px;
+}
+
+.typing-dot {
+    width: 8px;
+    height: 8px;
+    background: #8A847E;
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+.typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-8px);
+    }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .ai-assistant-container {
+        padding: 12px;
+        height: calc(100vh - 120px);
+    }
+    
+    .message {
+        max-width: 90%;
+    }
+    
+    .quick-buttons {
+        flex-direction: column;
+    }
+    
+    .quick-btn {
+        width: 100%;
+        text-align: left;
+    }
+}
+</style>
+
+<script>
+// 对话历史
+let conversationHistory = [];
+let providersInfo = { current: 'deepseek', providers: [] };
+
+// 模型选择变更
+function onProviderChange() {
+    const sel = document.getElementById('providerSelect');
+    const provider = sel.value;
+    localStorage.setItem('aiProvider', provider);
+    updateProviderStatus();
+}
+
+// 根据 provider 状态更新角标
+function updateProviderStatus() {
+    const sel = document.getElementById('providerSelect');
+    const status = document.getElementById('providerStatus');
+    if (!sel || !status) return;
+    const provider = sel.value;
+    const info = providersInfo.providers.find(p => p.id === provider);
+    if (!info) {
+        status.textContent = '未配置';
+        status.className = 'provider-status off';
+    } else if (info.configured) {
+        status.textContent = `${info.name} · 就绪`;
+        status.className = 'provider-status ok';
+    } else {
+        status.textContent = `${info.name} · 未配置 key(将降级到本地规则)`;
+        status.className = 'provider-status off';
+    }
+}
+
+    // 加载 provider 列表
+async function loadProviders() {
+    try {
+        const resp = await fetch('/api/ai/providers');
+        const data = await resp.json();
+        if (data.success) {
+            providersInfo = data;
+            const sel = document.getElementById('providerSelect');
+            // 优先用用户上次选的,否则用后端默认
+            const saved = localStorage.getItem('aiProvider') || data.current || 'zhipu';
+            if ([...sel.options].some(o => o.value === saved)) {
+                sel.value = saved;
+            }
+            updateProviderStatus();
+            // 如果当前 provider 未配置 key,显示开启提示
+            showFreeKeyHintIfNeeded();
+        }
+    } catch (e) {
+        const status = document.getElementById('providerStatus');
+        if (status) {
+            status.textContent = '服务不可用';
+            status.className = 'provider-status off';
+        }
+    }
+}
+
+// 当未配置 key 时,显示一行"免费开启 AI"横幅
+function showFreeKeyHintIfNeeded() {
+    // 已经显示过则不重复
+    if (document.getElementById('freeKeyHint')) return;
+    const sel = document.getElementById('providerSelect');
+    if (!sel) return;
+    const info = providersInfo.providers.find(p => p.id === sel.value);
+    if (info && !info.configured) {
+        const banner = document.createElement('div');
+        banner.id = 'freeKeyHint';
+        banner.style.cssText = 'margin: 0 0 16px 0; padding: 12px 18px; background: linear-gradient(135deg, #FFF4E5, #FFE8CC); border: 1px dashed #E0A85C; border-radius: 12px; font-size: 13px; color: #8A5A2B; line-height: 1.7;';
+        banner.innerHTML = `
+            <b>💡 当前为本地规则回复 · 开启真正 AI 助手(完全免费):</b><br>
+            1️⃣ 打开 <a href="https://bigmodel.cn/" target="_blank" style="color:#C97676;text-decoration:underline;">bigmodel.cn</a> 注册智谱 AI 账号<br>
+            2️⃣ 进入「API Keys」→ 创建一把 key(实名后免费、无额度限制)<br>
+            3️⃣ 把 key 填到项目根目录 <code>.env</code> 文件的 <code>ZHIPU_API_KEY=...</code> 后面<br>
+            4️⃣ 重启 Flask 即可
+        `;
+        const quick = document.querySelector('.quick-questions');
+        if (quick && quick.parentNode) {
+            quick.parentNode.insertBefore(banner, quick);
+        }
+    }
+}
+
+// 自动调整textarea高度
+function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+}
+
+// 处理键盘事件
+function handleKeyDown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
+// 发送快捷消息
+function sendQuickMessage(message) {
+    document.getElementById('messageInput').value = message;
+    sendMessage();
+}
+
+// 发送消息
+async function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    // 添加用户消息
+    addMessage(message, 'user');
+    input.value = '';
+    autoResize(input);
+
+    // 禁用发送按钮
+    sendBtn.disabled = true;
+
+    // 显示加载动画
+    showTypingIndicator();
+
+    try {
+        // 调用后端API
+        const provider = document.getElementById('providerSelect')?.value;
+        const response = await fetch('/api/ai-chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: message,
+                history: conversationHistory,
+                provider: provider,
+            })
+        });
+
+        const data = await response.json();
+
+        // 移除加载动画
+        removeTypingIndicator();
+
+        if (data.success) {
+            // 添加AI回复(降级模式时附带小角标)
+            const prefix = data.source === 'fallback' ? '' : '';
+            addMessage((prefix + data.response), 'ai');
+            // 更新对话历史
+            conversationHistory.push({ role: 'user', content: message });
+            conversationHistory.push({ role: 'assistant', content: data.response });
+        } else {
+            addMessage('抱歉，出现了一些问题：' + data.error, 'ai');
+        }
+    } catch (error) {
+        removeTypingIndicator();
+        addMessage('抱歉，网络连接失败，请稍后再试。', 'ai');
+    }
+
+    // 启用发送按钮
+    sendBtn.disabled = false;
+}
+
+// 添加消息到聊天区域
+function addMessage(content, role) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}-message`;
+    
+    const avatar = role === 'ai' ? '✨' : '👤';
+    
+    messageDiv.innerHTML = `
+        <div class="message-avatar">
+            <span class="avatar-icon">${avatar}</span>
+        </div>
+        <div class="message-content">
+            ${formatMessage(content)}
+        </div>
+    `;
+    
+    chatMessages.appendChild(messageDiv);
+    scrollToBottom();
+}
+
+// 格式化消息内容
+function formatMessage(content) {
+    // 简单的换行处理
+    return content
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+}
+
+// 显示加载动画
+function showTypingIndicator() {
+    const chatMessages = document.getElementById('chatMessages');
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message ai-message';
+    typingDiv.id = 'typingIndicator';
+    
+    typingDiv.innerHTML = `
+        <div class="message-avatar">
+            <span class="avatar-icon">✨</span>
+        </div>
+        <div class="message-content typing-indicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+        </div>
+    `;
+    
+    chatMessages.appendChild(typingDiv);
+    scrollToBottom();
+}
+
+// 移除加载动画
+function removeTypingIndicator() {
+    const typingIndicator = document.getElementById('typingIndicator');
+    if (typingIndicator) {
+        typingIndicator.remove();
+    }
+}
+
+// 滚动到底部
+function scrollToBottom() {
+    const chatMessages = document.getElementById('chatMessages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// 页面加载完成后滚动到底部
+window.onload = function() {
+    scrollToBottom();
+    loadProviders();
+};
+</script>
+{% endblock %}
