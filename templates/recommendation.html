@@ -1,0 +1,943 @@
+{% extends "base.html" %}
+
+{% block title %}在线试衣 - 智能穿搭推荐系统{% endblock %}
+
+{% block content %}
+<!-- importmap: Three.js + OrbitControls (走本地同源,不依赖外网 CDN) -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "/static/3d/three.module.js",
+    "three/addons/": "/static/3d/addons/"
+  }
+}
+</script>
+<!-- 兜底:如果浏览器不支持 importmap,直接 <script src> 加载 three,挂到 window.THREE -->
+<script>
+  window.addEventListener('error', function(e){
+    console.error('[tryon] runtime error:', e.message, e.filename, e.lineno);
+    var overlay = document.getElementById('canvas3d-overlay');
+    if (overlay) overlay.innerHTML = '<div style="color:#a05858;font-size:13px;padding:18px;text-align:center;">3D 加载失败: ' + e.message + '<br><small>请检查浏览器控制台</small></div>';
+  });
+</script>
+
+<style>
+.try-on-shell {
+  position: fixed; top: 50px; left: 0; right: 0; bottom: 0;
+  display: grid;
+  grid-template-columns: 240px 1fr 320px;
+  grid-template-rows: 56px 1fr 110px;
+  grid-template-areas: "topbar  topbar    topbar"
+                       "left    center    right"
+                       "left    bottombar right";
+  background: #F4F1ED; z-index: 1;
+}
+.try-on-shell.hidden-UI > * { display: none !important; }
+.try-on-shell.hidden-UI {
+  grid-template-rows: 0 1fr 0;
+  grid-template-columns: 0 1fr 0;
+}
+
+/* ===== 顶部 ===== */
+.top-bar {
+  grid-area: topbar;
+  background: rgba(253, 252, 250, 0.95);
+  border-bottom: 1px solid #E8E5E0;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 0 16px; backdrop-filter: blur(8px);
+}
+.top-bar .title {
+  font-size: 14px; color: #8A847E; font-weight: 700;
+  margin-right: 16px;
+  background: linear-gradient(135deg, #9AA8B0, #B8A89A);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.top-bar .tool-btn {
+  padding: 6px 12px; background: #FDFCFA; border: 1px solid #D5D0CA; border-radius: 8px;
+  color: #4A4540; font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; gap: 4px; transition: all 0.2s;
+}
+.top-bar .tool-btn:hover { background: #F4F1ED; border-color: #9AA8B0; }
+.top-bar .tool-btn:active { transform: scale(0.96); }
+
+/* ===== 左侧:服饰库 ===== */
+.left-panel {
+  grid-area: left; background: #FDFCFA; border-right: 1px solid #E8E5E0;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.left-panel .filter-bar { padding: 10px; border-bottom: 1px solid #E8E5E0; }
+.left-panel .gender-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.left-panel .gender-tab {
+  flex: 1; padding: 6px 8px; font-size: 12px;
+  background: #F4F1ED; border: 1px solid transparent; border-radius: 6px;
+  cursor: pointer; color: #6B6560; text-align: center;
+}
+.left-panel .gender-tab.active { background: #9AA8B0; color: white; }
+.left-panel .cat-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.left-panel .cat-tab {
+  padding: 4px 8px; font-size: 11px;
+  background: #FDFCFA; border: 1px solid #D5D0CA; border-radius: 12px;
+  cursor: pointer; color: #6B6560;
+}
+.left-panel .cat-tab.active { background: #4A4540; color: white; border-color: #4A4540; }
+.left-panel .lib-grid {
+  flex: 1; overflow-y: auto; padding: 8px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
+}
+.left-panel .lib-item {
+  aspect-ratio: 1; border-radius: 8px; cursor: pointer;
+  background: #F4F1ED; background-size: cover; background-position: center;
+  border: 2px solid transparent; transition: all 0.2s; position: relative;
+}
+.left-panel .lib-item:hover { transform: scale(1.04); }
+.left-panel .lib-item.selected { border-color: #A8B8AA; box-shadow: 0 0 0 2px rgba(168, 184, 170, 0.3); }
+.left-panel .lib-item .item-name {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 100%);
+  color: white; font-size: 10px; padding: 6px 4px 3px;
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ===== 中间:3D 画布 ===== */
+.center-area {
+  grid-area: center; position: relative; overflow: hidden;
+  background: linear-gradient(180deg, #F8F4EE 0%, #F4F1ED 100%);
+}
+.center-area canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.center-area canvas:active { cursor: grabbing; }
+.center-area .canvas-tip {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(74, 69, 64, 0.7); color: #FDFCFA;
+  padding: 6px 14px; border-radius: 16px; font-size: 12px; pointer-events: none;
+}
+.center-area .loader-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; color: #8A847E; font-size: 14px;
+  background: rgba(244, 241, 237, 0.8); backdrop-filter: blur(2px);
+}
+.center-area .loader-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid #E8E5E0; border-top-color: #9AA8B0;
+  border-radius: 50%; animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.center-area .worn-items {
+  position: absolute; top: 16px; left: 16px;
+  background: rgba(253, 252, 250, 0.92); border-radius: 12px;
+  padding: 8px 10px; max-width: 200px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.center-area .worn-items h6 { margin: 0 0 6px 0; font-size: 11px; color: #8A847E; font-weight: 600; }
+.center-area .worn-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin: 2px; padding: 3px 8px;
+  background: #F4F1ED; border-radius: 10px; font-size: 11px; color: #4A4540;
+}
+.center-area .worn-chip .x { cursor: pointer; color: #C97676; font-weight: 700; }
+
+/* 性别切换(右上) */
+.center-area .gender-toggle {
+  position: absolute; top: 16px; right: 16px;
+  display: flex; gap: 0; background: rgba(253, 252, 250, 0.92);
+  border-radius: 20px; padding: 3px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.center-area .gender-toggle button {
+  padding: 6px 14px; font-size: 12px; font-weight: 600;
+  background: transparent; border: none; border-radius: 18px;
+  color: #6B6560; cursor: pointer;
+}
+.center-area .gender-toggle button.active { background: #9AA8B0; color: white; }
+
+/* 视角切换(左下) */
+.center-area .view-presets {
+  position: absolute; bottom: 16px; right: 16px;
+  display: flex; gap: 4px; background: rgba(253, 252, 250, 0.92);
+  border-radius: 16px; padding: 3px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.center-area .view-presets button {
+  padding: 5px 10px; font-size: 11px;
+  background: transparent; border: none; border-radius: 14px;
+  color: #6B6560; cursor: pointer; font-weight: 500;
+}
+.center-area .view-presets button.active { background: #9AA8B0; color: white; }
+
+/* 发型/肤色切换器(右上) */
+.center-area .char-extra {
+  position: absolute; top: 60px; right: 16px;
+  background: rgba(253, 252, 250, 0.92); border-radius: 12px;
+  padding: 8px 10px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  font-size: 11px; min-width: 130px;
+}
+.center-area .char-extra .row {
+  display: flex; align-items: center; gap: 6px; margin: 4px 0;
+}
+.center-area .char-extra .row label { color: #6B6560; flex: 1; }
+.center-area .char-extra select {
+  font-size: 11px; padding: 2px 4px;
+  border: 1px solid #D5D0CA; border-radius: 4px; background: #FDFCFA;
+}
+
+/* ===== 右侧:以闪亮之名塑形菜单 ===== */
+.right-panel {
+  grid-area: right; background: #FDFCFA; border-left: 1px solid #E8E5E0;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.right-panel .panel-section { border-bottom: 1px solid #E8E5E0; padding: 12px; }
+.right-panel .panel-section h4 {
+  margin: 0 0 10px 0; font-size: 13px; color: #4A4540;
+  display: flex; align-items: center; gap: 6px;
+}
+.shape-nav { display: flex; flex-wrap: wrap; gap: 4px; }
+.shape-nav .nav-item {
+  padding: 6px 10px; font-size: 12px; font-weight: 500;
+  background: #F4F1ED; border: 1px solid transparent; border-radius: 14px;
+  color: #6B6560; cursor: pointer; position: relative;
+}
+.shape-nav .nav-item:hover { background: #EDEAE5; }
+.shape-nav .nav-item.active {
+  background: linear-gradient(135deg, #9AA8B0, #B8A89A);
+  color: white; border-color: #9AA8B0;
+}
+.shape-subnav {
+  display: flex; gap: 4px; margin: 6px 0 0 0; padding-left: 8px;
+  border-left: 2px solid #E8E5E0;
+}
+.shape-subnav .sub-item {
+  padding: 4px 8px; font-size: 11px;
+  background: #FDFCFA; border: 1px solid #D5D0CA; border-radius: 10px;
+  color: #8A847E; cursor: pointer;
+}
+.shape-subnav .sub-item.active { background: #4A4540; color: white; border-color: #4A4540; }
+
+.shape-sliders { flex: 1; overflow-y: auto; }
+.slider-row { margin: 10px 0; }
+.slider-row .label {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; color: #4A4540; margin-bottom: 4px;
+}
+.slider-row .label .val {
+  background: #F4F1ED; padding: 2px 8px; border-radius: 8px;
+  font-variant-numeric: tabular-nums; font-weight: 600;
+  color: #4A4540; min-width: 50px; text-align: right;
+}
+.slider-row input[type="range"] { width: 100%; accent-color: #9AA8B0; cursor: pointer; }
+.slider-row input[type="number"] {
+  width: 100%; padding: 4px 6px; border: 1px solid #D5D0CA; border-radius: 6px;
+  font-size: 12px; text-align: center; font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}
+
+.cloth-tune { background: #F4F1ED; border-radius: 10px; padding: 8px; }
+.cloth-tune .setup-item {
+  display: grid; grid-template-columns: 60px 1fr 40px;
+  gap: 8px; align-items: center; margin: 6px 0;
+  font-size: 11px; color: #4A4540;
+}
+.cloth-tune input[type="range"] { width: 100%; accent-color: #9AA8B0; }
+.cloth-tune .setup-item .val { font-size: 11px; color: #8A847E; text-align: right; font-variant-numeric: tabular-nums; }
+.cloth-tune .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.cloth-tune .action-row button {
+  padding: 6px 10px; font-size: 12px;
+  border: 1px solid #D5D0CA; border-radius: 8px;
+  background: #FDFCFA; cursor: pointer; color: #4A4540;
+}
+.cloth-tune .action-row button:hover { background: #EDEAE5; }
+.cloth-tune .action-row button.primary { background: #9AA8B0; color: white; border-color: #9AA8B0; }
+
+/* ===== 底部横向参数滑轨 ===== */
+.bottom-bar {
+  grid-area: bottombar;
+  background: rgba(253, 252, 250, 0.95);
+  border-top: 1px solid #E8E5E0;
+  padding: 10px 16px; backdrop-filter: blur(8px);
+  display: flex; align-items: center; gap: 18px; overflow-x: auto;
+}
+.bottom-bar .bottom-param {
+  display: flex; align-items: center; gap: 6px; min-width: 200px; flex-shrink: 0;
+}
+.bottom-bar .bottom-param label { font-size: 11px; color: #6B6560; white-space: nowrap; min-width: 50px; }
+.bottom-bar .bottom-param input[type="range"] { width: 80px; accent-color: #9AA8B0; }
+.bottom-bar .bottom-param input[type="number"] {
+  width: 50px; padding: 2px 4px; border: 1px solid #D5D0CA; border-radius: 4px;
+  font-size: 11px; text-align: right; font-variant-numeric: tabular-nums;
+}
+.bottom-bar .empty-hint { font-size: 12px; color: #A8A29C; text-align: center; width: 100%; }
+
+/* Toast */
+.toast {
+  position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+  padding: 10px 22px; background: rgba(74, 69, 64, 0.92);
+  color: #FDFCFA; border-radius: 24px; font-size: 13px;
+  z-index: 9999; pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: toastIn 0.3s ease;
+}
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+</style>
+
+<div class="try-on-shell" id="tryonShell">
+  <!-- 顶部功能栏 -->
+  <div class="top-bar">
+    <span class="title">✨ 在线试衣 · 二次元捏身</span>
+    <button class="tool-btn" onclick="resetAllShape()">↺ 重置体型</button>
+    <button class="tool-btn" onclick="randomizeShape()">🎲 随机体型</button>
+    <button class="tool-btn" onclick="saveOutfit()">💾 保存形象</button>
+    <button class="tool-btn" onclick="exportScreenshot()">📷 保存截图</button>
+    <button class="tool-btn" onclick="copyShapeToClipboard()">📋 复制参数</button>
+    <button class="tool-btn" onclick="toggleUI()">👁 隐藏界面</button>
+  </div>
+
+  <!-- 左侧:服饰库 -->
+  <div class="left-panel">
+    <div class="filter-bar">
+      <div class="gender-tabs">
+        <div class="gender-tab active" data-gender="female">女 👩</div>
+        <div class="gender-tab" data-gender="male">男 👨</div>
+        <div class="gender-tab" data-gender="all">全部</div>
+      </div>
+      <div class="cat-tabs" id="catTabs">
+        <div class="cat-tab active" data-cat="上衣">👕 上衣</div>
+        <div class="cat-tab" data-cat="下装">👖 下装</div>
+        <div class="cat-tab" data-cat="外套">🧥 外套</div>
+        <div class="cat-tab" data-cat="连衣裙">👗 裙装</div>
+        <div class="cat-tab" data-cat="鞋子">👟 鞋子</div>
+        <div class="cat-tab" data-cat="配饰">🎩 配饰</div>
+      </div>
+    </div>
+    <div class="lib-grid" id="libGrid">
+      <div class="loader-spinner" style="grid-column: 1/-1; margin: 30px auto;"></div>
+    </div>
+  </div>
+
+  <!-- 中间:3D 画布 -->
+  <div class="center-area">
+    <canvas id="canvas3d"></canvas>
+    <div class="loader-overlay" id="loaderOverlay">
+      <div class="loader-spinner"></div>
+      <div>3D 二次元角色加载中…</div>
+    </div>
+    <div class="worn-items" id="wornItems" style="display:none;">
+      <h6>已穿单品</h6>
+      <div id="wornList"></div>
+    </div>
+    <div class="gender-toggle">
+      <button id="btnGenderFemale" class="active" onclick="switchGenderUI('female')">♀ 女性</button>
+      <button id="btnGenderMale" onclick="switchGenderUI('male')">♂ 男性</button>
+    </div>
+    <div class="char-extra">
+      <div class="row">
+        <label>肤色</label>
+        <select onchange="changeSkin(this.value)">
+          <option value="0xFAE3D0">白皙</option>
+          <option value="0xF4D2BC" selected>自然</option>
+          <option value="0xC99878">小麦</option>
+          <option value="0xFDEEE0">瓷白</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>发型</label>
+        <select onchange="changeHairStyle(this.value)">
+          <option value="long" selected>长发</option>
+          <option value="twin_tail">双马尾</option>
+          <option value="short">短发</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>发色</label>
+        <select onchange="changeHair(this.value)">
+          <option value="0x2A1B14" selected>黑色</option>
+          <option value="0x5A3A2A">棕色</option>
+          <option value="0xE8C77A">金色</option>
+          <option value="0xE8A8C0">粉色</option>
+          <option value="0xC0C8D0">银白</option>
+          <option value="0x8A6FA8">紫色</option>
+        </select>
+      </div>
+    </div>
+    <div class="view-presets">
+      <button onclick="setViewUI('front')" class="active" id="vp-front">正</button>
+      <button onclick="setViewUI('side')" id="vp-side">侧</button>
+      <button onclick="setViewUI('back')" id="vp-back">背</button>
+    </div>
+    <div class="canvas-tip">🖱 左旋转 · 滚轮缩放 · 右平移</div>
+  </div>
+
+  <!-- 右侧:塑形面板 -->
+  <div class="right-panel">
+    <div class="panel-section">
+      <h4>📐 身材塑形</h4>
+      <div class="shape-nav" id="shapeNav"></div>
+      <div class="shape-subnav" id="shapeSubnav" style="display:none;"></div>
+    </div>
+    <div class="panel-section shape-sliders" id="shapeSliders">
+      <h4 id="slidersTitle">调整参数</h4>
+      <div id="sliderList">
+        <div class="empty-hint">请选择部位开始塑形</div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <h4>👕 服装微调</h4>
+      <div class="cloth-tune">
+        <div class="setup-item">
+          <label>水平位移</label>
+          <input type="range" id="positionX" min="-100" max="100" value="0">
+          <span class="val" id="positionXValue">0</span>
+        </div>
+        <div class="setup-item">
+          <label>垂直位移</label>
+          <input type="range" id="positionY" min="-100" max="100" value="0">
+          <span class="val" id="positionYValue">0</span>
+        </div>
+        <div class="setup-item">
+          <label>服装大小</label>
+          <input type="range" id="clothingScale" min="50" max="200" value="100">
+          <span class="val" id="scaleValue">100%</span>
+        </div>
+        <div class="setup-item">
+          <label>透明度</label>
+          <input type="range" id="clothingOpacity" min="20" max="100" value="90">
+          <span class="val" id="opacityValue">90%</span>
+        </div>
+        <div class="action-row">
+          <button onclick="resetClothingPosition()">↩ 重置位置</button>
+          <button class="primary" onclick="exportScreenshot()">📱 保存截图</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部参数滑轨 -->
+  <div class="bottom-bar" id="bottomBar">
+    <div class="empty-hint">调整右侧滑块,此滑轨会同步显示对应参数</div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+import { initTryOn3D } from '/static/3d/tryon3d.js';
+
+let tryon3d = null;
+let allClothing = [];
+let currentGenderFilter = 'female';
+let currentCategory = '上衣';
+let currentItemId = null;
+const wornItems = {};
+let currentPart = '整体';
+let currentSubPart = null;
+
+// ============== 14 个塑形参数定义(以闪亮之名结构) ==============
+// 一级分类 → 二级(可选) → 参数列表
+// 限位:每个参数 [min, max],由 SHAPE 内 default 自动外扩 ±30%
+const SHAPE_NAV = [
+  { id: '整体', icon: '🧍', subs: null, params: [
+    { key: 'height', label: '身高', unit: 'cm', min: 140, max: 200, step: 1, default: 162, scale: 100 }
+  ]},
+  { id: '头部', icon: '💇', subs: null, params: [
+    { key: 'faceLength', label: '脸长',   unit: 'cm', min:  7, max: 14, step: 1, default: 10, scale: 100 },
+    { key: 'faceWidth',  label: '脸宽',   unit: 'cm', min:  6, max: 12, step: 1, default:  8.5, scale: 100 },
+    { key: 'chin',       label: '下巴尖度', unit: '%', min: 0, max: 100, step: 1, default: 50, scale: 100 },
+    { key: 'cheekBone',  label: '颧骨',   unit: '%', min: 0, max: 100, step: 1, default: 50, scale: 100 },
+    { key: 'browBone',   label: '眉骨',   unit: '%', min: 0, max: 100, step: 1, default: 50, scale: 100 }
+  ]},
+  { id: '肩部', icon: '🤷', subs: null, params: [
+    { key: 'shoulderWidth', label: '肩宽', unit: 'cm', min: 24, max: 44, step: 1, default: 34, scale: 100 },
+    { key: 'shoulderTilt',  label: '肩斜度', unit: '%', min: 0, max: 100, step: 1, default: 50, scale: 100 }
+  ]},
+  { id: '手臂', icon: '💪', subs: null, params: [
+    { key: 'armLength',     label: '臂长',   unit: 'cm', min: 34, max: 62, step: 1, default: 48, scale: 100 },
+    { key: 'upperArmGirth', label: '上臂围', unit: 'cm', min:  4, max:  9, step: 1, default:  6, scale: 100 },
+    { key: 'forearmGirth',  label: '前臂围', unit: 'cm', min:  3, max:  7, step: 1, default:  5, scale: 100 }
+  ]},
+  { id: '胸部', icon: '👚', subs: null, params: [
+    { key: 'chest',          label: '胸围',   unit: 'cm', min: 11, max: 22, step: 1, default: 16, scale: 100 },
+    { key: 'bustSize',       label: '罩杯',   unit: '%',  min:  0, max: 100, step: 1, default: 50, scale: 100 },
+    { key: 'bustProjection', label: '突出度', unit: '%',  min:  0, max: 100, step: 1, default: 50, scale: 100 }
+  ]},
+  { id: '腰部', icon: '🩱', subs: null, params: [
+    { key: 'waist',      label: '腰围',   unit: 'cm', min: 9, max: 18, step: 1, default: 13, scale: 100 },
+    { key: 'waistCurve', label: '曲线弧度', unit: '%', min: 0, max: 100, step: 1, default: 50, scale: 100 }
+  ]},
+  { id: '腿部', icon: '🦵', subs: [
+    { id: '大腿', params: [
+      { key: 'thighGirth',  label: '大腿围', unit: 'cm', min:  7, max: 14, step: 1, default: 10, scale: 100 },
+      { key: 'thighLength', label: '大腿长', unit: 'cm', min: 27, max: 50, step: 1, default: 38, scale: 100 }
+    ]},
+    { id: '小腿', params: [
+      { key: 'calfGirth', label: '小腿围', unit: 'cm', min:  5, max: 10, step: 1, default: 7.5, scale: 100 }
+    ]}
+  ]},
+  { id: '脚部', icon: '🦶', subs: null, params: [
+    { key: 'footSize', label: '脚部', unit: 'cm', min: 7, max: 14, step: 1, default: 10, scale: 100 }
+  ]}
+];
+const NAV_BY_ID = Object.fromEntries(SHAPE_NAV.map(n => [n.id, n]));
+
+// 当前塑形参数(单位:米 / 比例;与 body.js DEFAULT_FEMALE 一致)
+const shape = {
+  height: 1.62,
+  // 头部
+  faceLength: 0.10, faceWidth: 0.085, chin: 0.5, cheekBone: 0.5, browBone: 0.5,
+  // 肩部
+  shoulderWidth: 0.34, shoulderTilt: 0.5,
+  // 手臂
+  armLength: 0.48, upperArmGirth: 0.060, forearmGirth: 0.050,
+  // 胸部
+  chest: 0.16, bustSize: 0.080, bustProjection: 0.075,
+  // 腰部
+  waist: 0.13, waistCurve: 0.5,
+  // 腿部
+  thighGirth: 0.10, thighLength: 0.38, calfGirth: 0.075,
+  // 脚部
+  footSize: 0.10
+};
+
+// ============== 防抖/节流 ==============
+function throttleRAF(fn) {
+  let pending = false, lastArgs;
+  return function(...args) {
+    lastArgs = args;
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => { fn.apply(this, lastArgs); pending = false; });
+  };
+}
+const applyShapeThrottled = throttleRAF(() => tryon3d?.applyShape({ ...shape }));
+
+// ============== 初始化 ==============
+window.addEventListener('DOMContentLoaded', async () => {
+  const canvas = document.getElementById('canvas3d');
+  try {
+    tryon3d = await initTryOn3D(canvas);  // initTryOn3D is async,必须 await
+    tryon3d.applyShape({ ...shape });
+  } catch (e) {
+    console.error('3D 初始化失败:', e);
+    const ov = document.getElementById('loaderOverlay');
+    if (ov) ov.innerHTML = '3D 加载失败: ' + e.message;
+    return;
+  }
+  setTimeout(() => {
+    const ov = document.getElementById('loaderOverlay');
+    if (ov) ov.style.display = 'none';
+  }, 500);
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('item_id')) currentItemId = +params.get('item_id');
+
+  renderShapeNav();
+  initClothingOffsetControls();
+  await loadClothingLibrary();
+  if (currentItemId) setTimeout(() => wearItem(currentItemId), 200);
+});
+
+// ============== 塑形菜单渲染 ==============
+function renderShapeNav() {
+  const nav = document.getElementById('shapeNav');
+  nav.innerHTML = SHAPE_NAV.map(n =>
+    `<div class="nav-item ${n.id === currentPart ? 'active' : ''}" data-id="${n.id}">${n.icon} ${n.id}</div>`
+  ).join('');
+  nav.querySelectorAll('.nav-item').forEach(el => {
+    el.addEventListener('click', () => {
+      currentPart = el.dataset.id;
+      currentSubPart = null;
+      renderShapeNav();
+      renderSliders();
+    });
+  });
+  renderSliders();
+}
+
+function activeParams() {
+  const part = NAV_BY_ID[currentPart];
+  if (!part) return [];
+  if (part.subs) {
+    if (!currentSubPart) currentSubPart = part.subs[0].id;
+    const sub = part.subs.find(s => s.id === currentSubPart);
+    return sub ? sub.params : [];
+  }
+  return part.params || [];
+}
+
+function renderSliders() {
+  const part = NAV_BY_ID[currentPart];
+  const subPart = part?.subs?.find(s => s.id === currentSubPart);
+  const title = subPart ? `${currentPart} · ${currentSubPart}` : currentPart;
+  document.getElementById('slidersTitle').textContent = `调整参数 · ${title}`;
+
+  // 如果有二级菜单,显示出来
+  const sub = document.getElementById('shapeSubnav');
+  if (part?.subs) {
+    sub.style.display = 'flex';
+    sub.innerHTML = part.subs.map(s =>
+      `<div class="sub-item ${s.id === currentSubPart ? 'active' : ''}" data-id="${s.id}">${s.id}</div>`
+    ).join('');
+    sub.querySelectorAll('.sub-item').forEach(el => {
+      el.addEventListener('click', () => {
+        currentSubPart = el.dataset.id;
+        renderSliders();
+      });
+    });
+    if (!currentSubPart) currentSubPart = part.subs[0].id;
+  } else {
+    sub.style.display = 'none';
+    sub.innerHTML = '';
+  }
+
+  const list = document.getElementById('sliderList');
+  const params = activeParams();
+  if (params.length === 0) {
+    list.innerHTML = '<div class="empty-hint">该部位暂无参数</div>';
+    renderBottomBar();
+    return;
+  }
+
+  list.innerHTML = params.map(p => {
+    const v = paramToUI(p, shape[p.key]);
+    return `
+    <div class="slider-row" data-key="${p.key}">
+      <div class="label">
+        <span>${p.label}</span>
+        <span class="val" id="val-${p.key}">${v} ${p.unit}</span>
+      </div>
+      <input type="range" data-key="${p.key}" min="${p.min}" max="${p.max}" step="${p.step}" value="${v}">
+      <input type="number" data-key="${p.key}" min="${p.min}" max="${p.max}" step="${p.step}" value="${v}">
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const key = e.target.dataset.key;
+      const v = +e.target.value;
+      const p = findParam(key);
+      shape[key] = v / p.scale;
+      list.querySelectorAll(`input[data-key="${key}"]`).forEach(other => { if (other !== e.target) other.value = v; });
+      const val = list.querySelector(`#val-${key}`);
+      if (val) val.textContent = v + ' ' + p.unit;
+      syncBottomBar(key, v);
+      applyShapeThrottled();
+    });
+  });
+  renderBottomBar();
+}
+
+// 内部值(米) → UI 显示值(cm/%)转换
+function paramToUI(p, internalVal) {
+  return Math.round(internalVal * p.scale);
+}
+function findParam(key) {
+  for (const n of SHAPE_NAV) {
+    if (n.params) { const p = n.params.find(x => x.key === key); if (p) return p; }
+    if (n.subs) for (const s of n.subs) { const p = s.params.find(x => x.key === key); if (p) return p; }
+  }
+  return null;
+}
+
+// ============== 底部滑轨 ==============
+function renderBottomBar() {
+  const bar = document.getElementById('bottomBar');
+  const params = activeParams();
+  if (params.length === 0) {
+    bar.innerHTML = '<div class="empty-hint">请在右侧选择部位,此滑轨会同步显示</div>';
+    return;
+  }
+  bar.innerHTML = params.map(p => {
+    const v = paramToUI(p, shape[p.key]);
+    return `
+    <div class="bottom-param" data-key="${p.key}">
+      <label>${p.label}</label>
+      <input type="range" data-key="${p.key}" min="${p.min}" max="${p.max}" step="${p.step}" value="${v}">
+      <input type="number" data-key="${p.key}" min="${p.min}" max="${p.max}" step="${p.step}" value="${v}">
+      <span style="font-size:10px;color:#A8A29C">${p.unit}</span>
+    </div>`;
+  }).join('');
+  bar.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const key = e.target.dataset.key;
+      const v = +e.target.value;
+      const p = findParam(key);
+      shape[key] = v / p.scale;
+      bar.querySelectorAll(`input[data-key="${key}"]`).forEach(other => { if (other !== e.target) other.value = v; });
+      // 同步右侧
+      const list = document.getElementById('sliderList');
+      list.querySelectorAll(`input[data-key="${key}"]`).forEach(other => other.value = v);
+      const val = list.querySelector(`#val-${key}`);
+      if (val) val.textContent = v + ' ' + p.unit;
+      applyShapeThrottled();
+    });
+  });
+}
+function syncBottomBar(key, v) {
+  const bar = document.getElementById('bottomBar');
+  bar.querySelectorAll(`input[data-key="${key}"]`).forEach(other => other.value = v);
+}
+
+// ============== 顶栏/UI ==============
+window.toggleUI = function() {
+  const shell = document.getElementById('tryonShell');
+  shell.classList.toggle('hidden-UI');
+  showToast(shell.classList.contains('hidden-UI') ? '👁 UI 已隐藏' : 'UI 已恢复');
+};
+window.copyShapeToClipboard = function() {
+  const json = JSON.stringify(tryon3d?.getCurrentShape() || shape, null, 2);
+  navigator.clipboard?.writeText(json).then(() => showToast('📋 体型参数已复制'))
+    .catch(() => prompt('复制以下体型参数(JSON):', json));
+};
+window.resetAllShape = function() {
+  if (tryon3d) {
+    const def = tryon3d.getDefaultShape();
+    Object.assign(shape, def);
+    tryon3d.loadShape({ ...def });
+  }
+  renderSliders();
+  showToast('↺ 身材已重置');
+};
+window.randomizeShape = function() {
+  tryon3d?.randomize(0.12);
+  const cur = tryon3d.getCurrentShape();
+  Object.assign(shape, cur);
+  renderSliders();
+  showToast('🎲 已随机生成体型');
+};
+window.saveOutfit = function() {
+  const snap = {
+    gender: tryon3d?.getGender() || 'female',
+    shape: tryon3d?.getCurrentShape() || shape,
+    worn: { ...wornItems },
+    savedAt: new Date().toISOString()
+  };
+  const key = 'tryon_saved_' + Date.now();
+  try {
+    localStorage.setItem(key, JSON.stringify(snap));
+    const all = JSON.parse(localStorage.getItem('tryon_saved_list') || '[]');
+    all.unshift({ key, name: snap.savedAt });
+    localStorage.setItem('tryon_saved_list', JSON.stringify(all.slice(0, 20)));
+    showToast('💾 已保存(' + all.length + '/20)');
+  } catch (e) { showToast('保存失败: ' + e.message, 'error'); }
+};
+window.exportScreenshot = function() {
+  if (!tryon3d) return;
+  try { tryon3d.saveScreenshot(); showToast('📷 截图已下载'); }
+  catch (e) { showToast('截图失败: ' + e.message, 'error'); }
+};
+
+// ============== 视角预设 ==============
+window.setViewUI = function(view) {
+  tryon3d?.setView(view);
+  ['front','side','back'].forEach(v => {
+    const btn = document.getElementById('vp-' + v);
+    if (btn) btn.classList.toggle('active', v === view);
+  });
+};
+
+// ============== 肤色/发型 ==============
+window.changeSkin = function(hex) {
+  tryon3d?.setSkin(parseInt(hex));
+  showToast('已切换肤色');
+};
+window.changeHair = function(hex) {
+  tryon3d?.setHair(parseInt(hex));
+};
+window.changeHairStyle = function(style) {
+  tryon3d?.setHair(style);
+  showToast('已切换发型');
+};
+
+// ============== 服饰库 ==============
+async function loadClothingLibrary() {
+  try {
+    const r = await fetch('/api/clothing');
+    const data = await r.json();
+    allClothing = data.items || data.clothing || [];
+  } catch (e) { allClothing = []; }
+  renderLib();
+}
+function isFemaleItem(it) { return (it.image_path || '').toLowerCase().includes('/female/'); }
+function isMaleItem(it) { return (it.image_path || '').toLowerCase().includes('/male/'); }
+function renderLib() {
+  const grid = document.getElementById('libGrid');
+  let items = allClothing.filter(it => it.category === currentCategory);
+  if (currentGenderFilter === 'female') items = items.filter(isFemaleItem);
+  else if (currentGenderFilter === 'male') items = items.filter(isMaleItem);
+  if (items.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:#A8A29C;font-size:12px;">该筛选无结果</div>';
+    return;
+  }
+  grid.innerHTML = items.map(it => {
+    const isSel = wornItems[it.category]?.id === it.id;
+    return `
+    <div class="lib-item ${isSel ? 'selected' : ''}" data-id="${it.id}"
+         style="background-image:url('/${it.image_path}')"
+         title="${escapeHtml(it.name)}"
+         onclick="wearItem(${it.id})">
+      <div class="item-name">${escapeHtml(truncate(it.name, 10))}</div>
+    </div>`;
+  }).join('');
+}
+function inferThreeType(name) {
+  const n = name || '';
+  if (/t恤|t恤|t-?shirt|tshirt|短袖/.test(n)) return 'tshirt';
+  if (/卫衣|套头|hoodie|卫裤|sweater/.test(n)) return 'sweater';
+  if (/衬衫|衬衣|shirt|polo/.test(n)) return 'shirt';
+  if (/外套|夹克|风衣|西装|jacket|coat|blazer|开衫|棒球/.test(n)) return 'jacket';
+  if (/裙|dress|连衣/.test(n)) return 'dress';
+  if (/裤|jeans|牛仔|pants|trousers|阔腿|直筒|短裤/.test(n)) return 'pants';
+  if (/鞋|shoe|运动|帆布|靴|loafer|sneaker/.test(n)) return 'shoe';
+  if (/项链|配饰|耳|戒指|帽|包/.test(n)) return 'accessory';
+  return 'tshirt';
+}
+const COLOR_HEX = {
+  '黑': 0x222222, '白': 0xF8F8F8, '灰': 0x8E8E8E, '米': 0xF0E6D2,
+  '红': 0xC2453D, '蓝': 0x4A6FA5, '深蓝': 0x2E4A78, '藏青': 0x22324D,
+  '粉': 0xE8A8C0, '黄': 0xF0C24A, '绿': 0x5A8A6A, '军绿': 0x4A5A3A,
+  '咖': 0x6B4A3A, '棕': 0x6B4A3A, '驼': 0xB89B72, '卡其': 0xB8A074,
+  '紫': 0x8A6FA8, '橙': 0xE89048, '条纹': 0x9AA8B0, '格': 0x8A7A6A
+};
+function inferColor(name) {
+  for (const k of Object.keys(COLOR_HEX)) if (name.includes(k)) return COLOR_HEX[k];
+  return 0x9AA8B0;
+}
+function hexToCss(h) { return '#' + h.toString(16).padStart(6, '0').toUpperCase(); }
+
+window.wearItem = function(id) {
+  const it = allClothing.find(i => i.id === id);
+  if (!it) return;
+  const slotMap = { '上衣': 'top', '外套': 'outer', '下装': 'bottom', '连衣裙': 'dress', '鞋子': 'shoes', '配饰': 'accessory' };
+  const slot = slotMap[it.category];
+  if (!slot) return;
+  const threeType = inferThreeType(it.name);
+  const hex = inferColor(it.name);
+  const preset = {
+    id: it.id, slot, type: threeType, color: hex,
+    name: it.name, swatch: hexToCss(hex), image: it.image_path
+  };
+  if (wornItems[it.category]?.id === it.id) {
+    delete wornItems[it.category];
+    tryon3d?.clearAllClothing();
+    for (const k of Object.keys(wornItems)) tryon3d?.setClothing(wornItems[k]);
+  } else {
+    wornItems[it.category] = preset;
+    tryon3d?.setClothing(preset);
+  }
+  renderLib();
+  renderWornList();
+};
+
+function renderWornList() {
+  const wornEl = document.getElementById('wornItems');
+  const listEl = document.getElementById('wornList');
+  const items = Object.values(wornItems);
+  if (items.length === 0) { wornEl.style.display = 'none'; return; }
+  wornEl.style.display = 'block';
+  listEl.innerHTML = items.map(p => `
+    <div class="worn-chip" style="border-left:3px solid ${p.swatch}">
+      <span style="overflow:hidden;text-overflow:ellipsis;max-width:120px;">${escapeHtml(p.name)}</span>
+      <span class="x" onclick="event.stopPropagation(); unwearItem('${p.slot}')">×</span>
+    </div>
+  `).join('');
+}
+window.unwearItem = function(slot) {
+  for (const cat of Object.keys(wornItems)) {
+    if (wornItems[cat].slot === slot) { delete wornItems[cat]; break; }
+  }
+  tryon3d?.clearAllClothing();
+  for (const k of Object.keys(wornItems)) tryon3d?.setClothing(wornItems[k]);
+  renderLib();
+  renderWornList();
+};
+
+// ============== 性别切换 ==============
+window.switchGenderUI = function(g) {
+  if (!tryon3d) return;
+  tryon3d.setGender(g);
+  tryon3d.loadShape({ ...shape });
+  document.getElementById('btnGenderFemale').classList.toggle('active', g === 'female');
+  document.getElementById('btnGenderMale').classList.toggle('active', g === 'male');
+  const def = tryon3d.getDefaultShape();
+  Object.assign(shape, def);
+  renderSliders();
+  currentGenderFilter = g;
+  document.querySelectorAll('.gender-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.gender === g);
+  });
+  renderLib();
+  showToast(g === 'female' ? '♀ 已切换女性' : '♂ 已切换男性');
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.gender-tab').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.gender-tab').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+      currentGenderFilter = el.dataset.gender;
+      if (tryon3d) {
+        const g = currentGenderFilter === 'male' ? 'male' : 'female';
+        tryon3d.setGender(g);
+        tryon3d.loadShape({ ...shape });
+        const def = tryon3d.getDefaultShape();
+        Object.assign(shape, def);
+        renderSliders();
+        document.getElementById('btnGenderFemale').classList.toggle('active', g === 'female');
+        document.getElementById('btnGenderMale').classList.toggle('active', g === 'male');
+      }
+      renderLib();
+    });
+  });
+  document.querySelectorAll('.cat-tab').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.cat-tab').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+      currentCategory = el.dataset.cat;
+      renderLib();
+    });
+  });
+});
+
+// ============== 服装微调 ==============
+function initClothingOffsetControls() {
+  ['positionX','positionY','clothingScale','clothingOpacity'].forEach(id => {
+    const inp = document.getElementById(id);
+    inp.addEventListener('input', () => {
+      const v = {
+        x: +document.getElementById('positionX').value,
+        y: +document.getElementById('positionY').value,
+        scale: +document.getElementById('clothingScale').value,
+        opacity: +document.getElementById('clothingOpacity').value
+      };
+      document.getElementById('positionXValue').textContent = v.x;
+      document.getElementById('positionYValue').textContent = v.y;
+      document.getElementById('scaleValue').textContent = v.scale + '%';
+      document.getElementById('opacityValue').textContent = v.opacity + '%';
+      tryon3d?.setClothingOffset(v);
+    });
+  });
+}
+window.resetClothingPosition = function() {
+  document.getElementById('positionX').value = 0;
+  document.getElementById('positionY').value = 0;
+  document.getElementById('clothingScale').value = 100;
+  document.getElementById('clothingOpacity').value = 90;
+  document.getElementById('positionXValue').textContent = '0';
+  document.getElementById('positionYValue').textContent = '0';
+  document.getElementById('scaleValue').textContent = '100%';
+  document.getElementById('opacityValue').textContent = '90%';
+  tryon3d?.resetClothing();
+};
+
+// ============== 工具 ==============
+function truncate(s, n) { return s.length > n ? s.slice(0, n) + '…' : s; }
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showToast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.style.background = type === 'error' ? 'rgba(201, 118, 118, 0.95)' : 'rgba(74, 69, 64, 0.92)';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; }, 1800);
+  setTimeout(() => t.remove(), 2200);
+}
+</script>
+{% endblock %}
