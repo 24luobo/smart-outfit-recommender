@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pkl
+*.db
+*.sqlite
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+err.txt
+out.txt
+
+# Models (trained, too large)
+models/
+
+# Uploads (user data)
+static/images/uploads/*
+!static/images/uploads/.gitkeep
+
+# Env
+.env
+
+# Binary
+*.exe
+
+# Large source images
+assets/image_*.png
