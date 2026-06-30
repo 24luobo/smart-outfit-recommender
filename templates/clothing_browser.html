@@ -1,0 +1,1058 @@
+{% extends "base.html" %}
+
+{% block title %}服饰库 - 智能穿搭推荐系统{% endblock %}
+
+{% block content %}
+<div class="kk-page-wrapper">
+    <h1 class="kk-page-title">服饰库</h1>
+
+    <!-- 性别Tab：互斥，选一个看一个 -->
+    <div class="kk-tabs">
+        <button class="kk-tab active" data-gender="all">全部</button>
+        <button class="kk-tab" data-gender="female">女生服饰</button>
+        <button class="kk-tab" data-gender="male">男生服饰</button>
+    </div>
+
+    <!-- 分类筛选：在选中性别后才显示该性别的所有分类 -->
+    <div class="kk-categories" id="categoryChips">
+        <button class="kk-cat-chip active" data-cat="all">全部</button>
+    </div>
+
+    <div class="kk-clothing-grid" id="clothingGrid">
+        <!-- 服饰卡片并排展示 -->
+    </div>
+</div>
+
+<!-- 服饰详情弹窗 -->
+<div class="kk-modal-overlay" id="clothingDetailModal">
+    <div class="kk-modal">
+        <button class="kk-modal-close" onclick="closeClothingModal()">✕</button>
+        <div class="kk-modal-header">
+            <img class="kk-modal-image" id="clothingModalImage" alt="">
+            <div class="kk-modal-title-area">
+                <div class="kk-modal-title" id="clothingModalName"></div>
+                <div class="kk-modal-tags" id="clothingModalTags"></div>
+            </div>
+        </div>
+        <div class="kk-modal-body" id="clothingModalBody">
+            <div style="text-align:center;color:#9AA8B0;padding:20px;">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .kk-page-wrapper { padding: 24px 16px 100px; max-width: 1400px; margin: 0 auto; }
+    .kk-page-title { font-size: 28px; font-weight: 700; color: #4A4540; margin-bottom: 20px; text-align: center; }
+
+    /* 性别Tab */
+    .kk-tabs { display: flex; gap: 12px; margin-bottom: 16px; justify-content: center; }
+    .kk-tab {
+        padding: 10px 24px; border: 2px solid #E0DDD8; background: #FDFCFA;
+        color: #8A847E; border-radius: 24px; cursor: pointer; font-size: 15px; font-weight: 600;
+        transition: all 0.25s;
+    }
+    .kk-tab:hover { border-color: #9AA8B0; color: #9AA8B0; }
+    .kk-tab.active { background: #9AA8B0; border-color: #9AA8B0; color: white; }
+
+    /* 分类筛选 */
+    .kk-categories { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; justify-content: center; }
+    .kk-cat-chip {
+        padding: 6px 16px; border: 1px solid #E0DDD8; background: #FDFCFA;
+        color: #8A847E; border-radius: 16px; cursor: pointer; font-size: 13px; font-weight: 500;
+        transition: all 0.2s;
+    }
+    .kk-cat-chip:hover { border-color: #9AA8B0; color: #9AA8B0; }
+    .kk-cat-chip.active { background: #4A4540; border-color: #4A4540; color: white; }
+
+    /* 服饰网格 - 关键：并排展示 */
+    .kk-clothing-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 20px;
+    }
+    .kk-clothing-card {
+        background: #FDFCFA; border-radius: 12px; overflow: hidden; cursor: pointer;
+        transition: all 0.3s; box-shadow: 0 2px 8px rgba(74, 69, 64, 0.06);
+        display: flex; flex-direction: column; position: relative;
+    }
+    .kk-clothing-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(74, 69, 64, 0.15); }
+    .kk-clothing-image {
+        width: 100%; aspect-ratio: 1/1; background: #F4F1ED;
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .kk-clothing-image img { width: 100%; height: 100%; object-fit: cover; }
+    .kk-clothing-info { padding: 12px; flex: 1; display: flex; flex-direction: column; }
+    .kk-clothing-name {
+        font-size: 13px; font-weight: 600; color: #4A4540; margin-bottom: 6px;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden; line-height: 1.4; min-height: 36px;
+    }
+    .kk-clothing-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .kk-clothing-tag {
+        font-size: 10px; color: #6B6560; background: #F4F1ED;
+        padding: 2px 8px; border-radius: 8px;
+    }
+    .kk-clothing-price {
+        font-size: 14px; font-weight: 700; color: #C97676; margin-top: auto;
+    }
+    .kk-card-action {
+        margin-top: 8px; padding: 6px; background: linear-gradient(135deg, #9AA8B0 0%, #7A8A92 100%);
+        color: white; border-radius: 6px; text-align: center; font-size: 11px; font-weight: 600;
+    }
+    .kk-clothing-fav {
+        position: absolute; top: 8px; right: 8px; width: 32px; height: 32px;
+        border-radius: 50%; background: rgba(253, 252, 250, 0.9); border: none;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); z-index: 5;
+        transition: all 0.2s; padding: 0; line-height: 1;
+    }
+    .kk-clothing-fav:hover { transform: scale(1.1); }
+    .kk-clothing-fav .kk-fav-icon { color: #8A847E; font-size: 16px; }
+    .kk-clothing-fav.favorited { background: #FFE4E1; }
+    .kk-clothing-fav.favorited .kk-fav-icon { color: #C97676; }
+    .kk-clothing-fav.favorited .kk-fav-icon::before { content: '❤'; }
+    .kk-clothing-fav:not(.favorited) .kk-fav-icon::before { content: '♡'; }
+
+    /* 弹窗 */
+    .kk-modal-overlay {
+        position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+        display: none; align-items: center; justify-content: center; z-index: 9999; padding: 20px;
+    }
+    .kk-modal-overlay.active { display: flex; }
+    .kk-modal {
+        background: #FDFCFA; border-radius: 16px; max-width: 960px; width: 100%;
+        max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        position: relative;
+    }
+    .kk-modal-close {
+        position: absolute; top: 12px; right: 12px;
+        width: 36px; height: 36px; border: none; background: rgba(244, 241, 237, 0.9);
+        border-radius: 50%; cursor: pointer; font-size: 16px; color: #6B6560; z-index: 10;
+    }
+    .kk-modal-header {
+        display: flex; gap: 16px; padding: 20px; border-bottom: 1px solid #E8E5E0;
+        position: sticky; top: 0; background: #FDFCFA; z-index: 1;
+    }
+    .kk-modal-image { width: 120px; height: 120px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+    .kk-modal-title-area { flex: 1; min-width: 0; }
+    .kk-modal-title { font-size: 20px; font-weight: 700; color: #4A4540; margin-bottom: 8px; }
+    .kk-modal-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .kk-modal-tag { font-size: 12px; background: #F4F1ED; color: #6B6560; padding: 4px 10px; border-radius: 10px; }
+    .kk-modal-body { padding: 18px 22px 22px; }
+
+    /* 六维度细粒度评价(雷达图 + 详情卡) */
+    .kk-hex-wrapper { padding: 4px 4px 8px; }
+    .kk-hex-header { text-align: center; margin-bottom: 12px; }
+    .kk-hex-title {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 17px; font-weight: 700; color: #4A4540;
+    }
+    .kk-hex-dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: linear-gradient(135deg, #C97676 0%, #A85858 100%);
+        display: inline-block;
+    }
+    .kk-hex-subtitle {
+        margin-top: 6px;
+        font-size: 12px; color: #9AA8B0;
+    }
+
+    /* 左右两列主区域 */
+    .kk-hex-main {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+    .kk-hex-left {
+        display: flex; flex-direction: column; gap: 12px;
+    }
+    .kk-hex-canvas-wrap {
+        background: linear-gradient(180deg, #FAF6F1 0%, #F3ECE3 100%);
+        border: 1px solid #EFE6DC;
+        border-radius: 12px;
+        padding: 8px;
+        display: flex; justify-content: center; align-items: center;
+    }
+    .kk-hex-canvas { width: 100%; height: auto; display: block; max-width: 340px; }
+
+    /* 综合分卡(左侧顶部) */
+    .kk-hex-overall {
+        display: flex; align-items: center; gap: 12px;
+        background: #FAF6F1; border: 1px solid #EFE6DC;
+        border-radius: 10px; padding: 10px 12px;
+    }
+    .kk-hex-overall-badge {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: #C97676; color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; font-weight: 700; flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(201, 118, 118, 0.3);
+    }
+    .kk-hex-overall-meta { color: #6B6560; font-size: 12px; line-height: 1.5; flex: 1; min-width: 0; }
+    .kk-hex-overall-meta b { color: #4A4540; }
+    .kk-hex-overall-tags {
+        display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;
+    }
+    .kk-hex-chip {
+        display: inline-block;
+        font-size: 10px; padding: 2px 7px; border-radius: 8px;
+        font-weight: 600; line-height: 1.4;
+    }
+    .kk-chip-strong {
+        background: linear-gradient(135deg, #C97676 0%, #A85858 100%);
+        color: #fff;
+    }
+    .kk-chip-weak {
+        background: #ECE7DF; color: #8A847C;
+    }
+
+    /* 右列: 2 列 3 行 详情卡网格, 保证 6 个全部可见 */
+    .kk-hex-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .kk-hex-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .kk-hex-card {
+        background: #FDFCFA;
+        border: 1px solid #EFE6DC;
+        border-radius: 10px;
+        padding: 10px 12px;
+        transition: box-shadow .2s;
+    }
+    .kk-hex-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .kk-hex-card-head {
+        display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+        flex-wrap: wrap;
+    }
+    .kk-hex-card-idx {
+        width: 20px; height: 20px; border-radius: 50%;
+        background: #F4F1ED; color: #6B6560;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .kk-hex-card-title {
+        flex: 1; min-width: 0;
+        font-size: 13px; font-weight: 700; color: #4A4540;
+    }
+    .kk-hex-card-tag {
+        font-size: 9px; padding: 2px 6px; border-radius: 7px;
+        font-weight: 700; letter-spacing: 0.3px; flex-shrink: 0;
+    }
+    .kk-tag-strong {
+        background: linear-gradient(135deg, #C97676 0%, #A85858 100%);
+        color: #fff;
+        box-shadow: 0 2px 6px rgba(201, 118, 118, 0.3);
+    }
+    .kk-tag-weak {
+        background: #E8E4DE; color: #8A847C;
+    }
+    .kk-hex-card-score {
+        font-size: 16px; font-weight: 700; color: #C97676;
+        font-family: 'Helvetica Neue', sans-serif;
+        margin-left: auto;
+    }
+    /* 强项 / 弱项视觉强化(从分数阈值改为 highlight 字段决定) */
+    .kk-hex-card-top {
+        border-left: 3px solid #C97676;
+        background: linear-gradient(180deg, #FFF5F5 0%, #FDFCFA 100%);
+    }
+    .kk-hex-card-top .kk-hex-card-score { color: #C97676; font-size: 18px; }
+    .kk-hex-card-top .kk-hex-card-title { color: #4A4540; }
+    .kk-hex-card-mid {
+        border-left: 3px solid #E0CCB6;
+    }
+    .kk-hex-card-mid .kk-hex-card-score { color: #C97676; }
+    .kk-hex-card-bot {
+        border-left: 3px solid #B8AFA6;
+        background: #FAF8F5;
+        opacity: 0.92;
+    }
+    .kk-hex-card-bot .kk-hex-card-score { color: #9A938B; }
+    .kk-hex-card-bot .kk-hex-card-title { color: #8A847C; font-weight: 600; }
+    .kk-hex-card-sub {
+        font-size: 10.5px; color: #9AA8B0; margin-bottom: 4px;
+        padding-left: 26px;
+    }
+    .kk-hex-card-desc {
+        font-size: 11.5px; color: #6B6560; line-height: 1.5;
+        padding-left: 26px;
+    }
+    @media (max-width: 760px) {
+        .kk-hex-main { grid-template-columns: 1fr; }
+        .kk-hex-grid { grid-template-columns: 1fr; }
+    }
+
+    /* 评论卡片 - 可点击展开 */
+    .kk-comment-card {
+        background: #F8F6F3; border-radius: 12px; margin-bottom: 12px; overflow: hidden;
+        transition: all 0.2s;
+    }
+    .kk-comment-card:hover { background: #F0EDE8; }
+    .kk-comment-header {
+        display: flex; align-items: center; gap: 10px; padding: 14px 16px; cursor: pointer; user-select: none;
+    }
+    .kk-comment-icon {
+        width: 36px; height: 36px; border-radius: 50%; background: #9AA8B0;
+        display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+    }
+    .kk-comment-info { flex: 1; min-width: 0; }
+    .kk-comment-type { font-size: 14px; font-weight: 600; color: #4A4540; margin-bottom: 2px; }
+    .kk-comment-summary { font-size: 12px; color: #9AA8B0; }
+    .kk-comment-toggle { font-size: 14px; color: #9AA8B0; transition: transform 0.2s; }
+    .kk-comment-card.expanded .kk-comment-toggle { transform: rotate(180deg); }
+    .kk-comment-content {
+        max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease;
+        padding: 0 16px; font-size: 14px; color: #6B6560; line-height: 1.7;
+    }
+    .kk-comment-card.expanded .kk-comment-content {
+        max-height: 600px; padding: 0 16px 16px 62px;
+    }
+    .kk-comment-meta {
+        margin-top: 10px; padding-top: 10px; border-top: 1px dashed #D5D0CA;
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 12px; color: #9AA8B0;
+    }
+    .kk-comment-score { color: #C97676; font-weight: 700; }
+
+    @media (min-width: 768px) {
+        .kk-clothing-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; }
+    }
+</style>
+
+<script>
+let allClothing = [];
+let currentGender = 'all';
+let currentCategory = 'all';
+
+// 精确的性别判断：以 image_path 实际路径为准（必须以 /male/ 或 /female/ 分割）
+// 关键：必须用 '/male/' 而不是 'male'，否则 'female' 字符串中的 'male' 子串会误判
+function isFemale(item) {
+    return (item.image_path || '').toLowerCase().includes('/female/');
+}
+function isMale(item) {
+    return (item.image_path || '').toLowerCase().includes('/male/');
+}
+
+// 分类对应的中文标签
+const CATEGORY_LABELS = {
+    '上衣': '上衣',
+    '下装': '下装',
+    '外套': '外套',
+    '连衣裙': '连衣裙',
+    '鞋子': '鞋子',
+    '配饰': '配饰'
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadClothing();
+    setupFilters();
+});
+
+async function loadClothing() {
+    try {
+        const response = await fetch('/api/clothing');
+        const data = await response.json();
+        if (data.success) {
+            allClothing = data.clothing || data.items || [];
+            updateCategoryChips();
+            renderClothing();
+            await markFavoritedItems();
+        }
+    } catch (error) {
+        console.error('加载服饰失败:', error);
+    }
+}
+
+// 把已收藏的单品按钮点亮（页面加载/筛选后调用）
+async function markFavoritedItems() {
+    const userId = await getOrCreateGuestUserId();
+    if (!userId) return;
+    try {
+        const res = await fetch(`/api/favorites/${userId}`);
+        const data = await res.json();
+        if (!data.success || !data.favorites) return;
+        const favoritedIds = new Set();
+        data.favorites.forEach(fav => {
+            if (fav.outfit_combo && fav.weather_context && fav.weather_context.source === 'clothing_card') {
+                favoritedIds.add(String(fav.weather_context.clothing_id));
+            }
+        });
+        document.querySelectorAll('.kk-clothing-fav').forEach(btn => {
+            const id = btn.getAttribute('data-id');
+            if (id && favoritedIds.has(id)) {
+                btn.classList.add('favorited');
+            }
+        });
+    } catch (e) {
+        console.error('加载已收藏状态失败:', e);
+    }
+}
+
+// 根据当前性别，动态生成可用的分类标签
+function updateCategoryChips() {
+    const filtered = getGenderFiltered();
+    const cats = new Set();
+    filtered.forEach(item => cats.add(item.category));
+    const sortedCats = Object.keys(CATEGORY_LABELS).filter(c => cats.has(c));
+
+    const chips = document.getElementById('categoryChips');
+    let html = '<button class="kk-cat-chip active" data-cat="all">全部</button>';
+    sortedCats.forEach(c => {
+        html += `<button class="kk-cat-chip" data-cat="${c}">${CATEGORY_LABELS[c]}</button>`;
+    });
+    chips.innerHTML = html;
+    currentCategory = 'all';
+    bindCategoryChips();
+    markFavoritedItems();
+}
+
+function bindCategoryChips() {
+    document.querySelectorAll('.kk-cat-chip').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.kk-cat-chip').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentCategory = this.dataset.cat;
+            renderClothing();
+            markFavoritedItems();
+        });
+    });
+}
+
+function getGenderFiltered() {
+    if (currentGender === 'female') return allClothing.filter(isFemale);
+    if (currentGender === 'male') return allClothing.filter(isMale);
+    return allClothing;
+}
+
+function setupFilters() {
+    document.querySelectorAll('.kk-tab').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.kk-tab').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentGender = this.dataset.gender;
+            updateCategoryChips();
+            renderClothing();
+            markFavoritedItems();
+        });
+    });
+}
+
+function renderClothing() {
+    const grid = document.getElementById('clothingGrid');
+    grid.innerHTML = '';
+
+    let filtered = getGenderFiltered();
+
+    if (currentCategory !== 'all') {
+        filtered = filtered.filter(item => item.category === currentCategory);
+    }
+
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#9AA8B0;padding:60px 20px;">该分类暂无服饰</div>';
+        return;
+    }
+
+    filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'kk-clothing-card';
+        card.innerHTML = `
+            <button class="kk-clothing-fav" data-id="${item.id}" title="收藏此单品">
+                <span class="kk-fav-icon"></span>
+            </button>
+            <div class="kk-clothing-image">
+                <img src="/${item.image_path}" alt="${item.name}" onerror="this.parentElement.innerHTML='👔'">
+            </div>
+            <div class="kk-clothing-info">
+                <div class="kk-clothing-name">${item.name}</div>
+                <div class="kk-clothing-tags">
+                    <span class="kk-clothing-tag">${item.category}</span>
+                    ${item.style ? `<span class="kk-clothing-tag">${item.style}</span>` : ''}
+                </div>
+                <div style="display:flex; gap:6px; margin-top:8px;">
+                    <div class="kk-card-action" style="flex:1; margin:0;">✨ 查看评测</div>
+                    <div class="kk-card-action kk-card-tryon" style="flex:1; margin:0; background: linear-gradient(135deg, #C97676 0%, #A85858 100%);">👗 立即试穿</div>
+                </div>
+            </div>
+        `;
+        card.addEventListener('click', (ev) => {
+            // 如果点的是"立即试穿"按钮,直接跳转
+            if (ev.target.closest('.kk-card-tryon')) {
+                window.location.href = '/tryon?item_id=' + item.id;
+                return;
+            }
+            showClothingDetail(item);
+        });
+        // 收藏按钮事件
+        card.querySelector('.kk-clothing-fav').addEventListener('click', (e) => {
+            e.stopPropagation();
+            favoriteClothingItem(item, e.currentTarget);
+        });
+        grid.appendChild(card);
+    });
+}
+
+// 评论类型配置
+const COMMENT_CONFIG = {
+    '颜色分析': { icon: '🎨', summary: '主色调与色彩饱和度评估' },
+    '纹理质感': { icon: '🧵', summary: '面料纹理与质感分析' },
+    '风格分类': { icon: '✨', summary: '风格定位与搭配场景' },
+    '版型分析': { icon: '📐', summary: '版型剪裁与身材适配' },
+    '搭配建议': { icon: '👗', summary: '配色与组合方案' },
+    '综合评分': { icon: '⭐', summary: '多维度综合评定' }
+};
+
+async function showClothingDetail(item) {
+    const modal = document.getElementById('clothingDetailModal');
+    const body = document.getElementById('clothingModalBody');
+    const img = document.getElementById('clothingModalImage');
+    const name = document.getElementById('clothingModalName');
+    const tags = document.getElementById('clothingModalTags');
+
+    img.src = '/' + item.image_path;
+    img.onerror = () => { img.alt = '👔'; };
+    name.textContent = item.name;
+    // 使用 DOM API 构造标签,避免 innerHTML + 模板字符串带来的 XSS 风险
+    tags.replaceChildren();
+    const catTag = document.createElement('span');
+    catTag.className = 'kk-modal-tag';
+    catTag.textContent = item.category || '';
+    tags.appendChild(catTag);
+    if (item.style) {
+        const styleTag = document.createElement('span');
+        styleTag.className = 'kk-modal-tag';
+        styleTag.textContent = item.style;
+        tags.appendChild(styleTag);
+    }
+
+    body.innerHTML = '<div style="text-align:center;color:#9AA8B0;padding:20px;">正在加载六维度评测...</div>';
+    modal.classList.add('active');
+
+    // 记录浏览历史（异步，不阻塞 UI）
+    recordBrowse('clothing', item.id, item.name, '/' + item.image_path, {
+        category: item.category,
+        style: item.style
+    });
+
+    // 调用六维度细粒度评分 API(机器学习特征打分)
+    const scoreData = await loadHexagonScore(item.id);
+    renderHexagonModal(body, item, scoreData);
+}
+
+// 调用后端六维度评分 API
+async function loadHexagonScore(clothingId) {
+    try {
+        const res = await fetch(`/api/clothing/${clothingId}/hexagon-score`);
+        const data = await res.json();
+        if (data.success) return data;
+    } catch (e) {
+        console.error('加载六维度评分失败:', e);
+    }
+    return null;
+}
+
+// HTML 转义(防 XSS)
+function escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// 在弹窗 body 内渲染六边形雷达图 + 6 张维度详情卡
+function renderHexagonModal(body, item, data) {
+    if (!data || !data.dimensions || data.dimensions.length !== 6) {
+        body.innerHTML = '<div style="text-align:center;color:#9AA8B0;padding:20px;">暂无评测数据</div>';
+        return;
+    }
+    const dims = data.dimensions;
+    const overall = data.overall;
+    // 顺时针顺序: 色彩配色 -> 面料触感 -> 版型剪裁 -> 材质成分 -> 宽松度适配 -> 耐用实穿
+    // 与后端 dims 数组顺序保持一致
+    body.innerHTML = `
+        <div class="kk-hex-wrapper">
+            <div class="kk-hex-header">
+                <div class="kk-hex-title">
+                    <span class="kk-hex-dot"></span>
+                    六维度细粒度评价
+                </div>
+                <div class="kk-hex-subtitle">基于机器学习特征打分算法 · 服饰库所有服饰均已生成</div>
+            </div>
+            <div class="kk-hex-main">
+                <!-- 左列: 综合分 + 雷达图(纵向) -->
+                <div class="kk-hex-left">
+                    <div class="kk-hex-overall">
+                        <div class="kk-hex-overall-badge">${overall}</div>
+                        <div class="kk-hex-overall-meta">
+                            六维度综合均分 <b>${overall}</b>
+                            <div class="kk-hex-overall-tags">
+                                ${dims.filter(d => d.highlight === 'top').map(d => `<span class="kk-hex-chip kk-chip-strong">★ ${escapeHtml(d.name.replace('评价',''))} ${d.score}</span>`).join('')}
+                                ${dims.filter(d => d.highlight === 'bot').map(d => `<span class="kk-hex-chip kk-chip-weak">${escapeHtml(d.name.replace('评价',''))} ${d.score}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="kk-hex-canvas-wrap">
+                        <canvas class="kk-hex-canvas" width="380" height="360"></canvas>
+                    </div>
+                </div>
+
+                <!-- 右列: 2×3 详情卡(全部 6 个维度,无滚动) -->
+                <div class="kk-hex-grid">
+                    ${dims.map((d, i) => {
+                        const s = Number(d.score) || 0;
+                        const hi = d.highlight || 'mid';
+                        const tag = hi === 'top' ? '<span class="kk-hex-card-tag kk-tag-strong">强项</span>'
+                                  : hi === 'bot' ? '<span class="kk-hex-card-tag kk-tag-weak">待提升</span>'
+                                  : '';
+                        return `
+                        <div class="kk-hex-card kk-hex-card-${hi}">
+                            <div class="kk-hex-card-head">
+                                <span class="kk-hex-card-idx">${i + 1}</span>
+                                <div class="kk-hex-card-title">${escapeHtml(d.name)}</div>
+                                ${tag}
+                                <div class="kk-hex-card-score">${s}</div>
+                            </div>
+                            <div class="kk-hex-card-sub">小字：${escapeHtml(d.sub)}</div>
+                            <div class="kk-hex-card-desc">${escapeHtml(d.desc)}</div>
+                        </div>
+                    `;}).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 绘制六边形雷达图(HiDPI + 入场动画 + 强项/弱项视觉差异)
+    const canvas = body.querySelector('.kk-hex-canvas');
+    if (canvas) {
+        drawHexagonRadar(
+            canvas,
+            dims.map(d => Number(d.score) || 0),
+            dims.map(d => d.highlight || 'mid')
+        );
+    } else {
+        console.warn('[hex] canvas element not found');
+    }
+}
+
+// 六边形雷达图绘制(纯 Canvas,无依赖)
+// 优化: HiDPI 适配 + 入场动画 + null 安全 + 单次路径绘制
+// 新增: 强项/弱项视觉差异(强项粗实线+亮色,弱项虚线+灰,顶层多边形着重描出强项)
+function drawHexagonRadar(canvas, scores, highlights) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // HiDPI 适配(canvas CSS 尺寸与 HTML width/height 保持一致)
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const cssW = canvas.clientWidth || 380;
+    const cssH = canvas.clientHeight || 360;
+    if (canvas.width !== cssW * dpr || canvas.height !== cssH * dpr) {
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const cx = cssW / 2;
+    // 把圆心向上挪一点, 给底部"材质成分"等顶点留出空间
+    const cy = cssH / 2 - 4;
+    // 雷达图最大半径:留出底部"77 材质成分"等外部徽章的空间
+    const maxLabelR = Math.min(cssW, cssH) * 0.40;
+    const radius = maxLabelR - 50;  // 留 50px 给外部徽章 + 标签
+    const n = 6;
+    const labels = ['色彩配色', '面料触感', '版型剪裁', '材质成分', '宽松度适配', '耐用实穿'];
+
+    const angles = [];
+    for (let i = 0; i < n; i++) angles.push(-Math.PI / 2 + (i * 2 * Math.PI) / n);
+
+    const startTs = performance.now();
+    const dur = 700;
+    const target = scores.map(v => Math.max(0, Math.min(100, v)) / 100);
+
+    function frame(now) {
+        const t = Math.min(1, (now - startTs) / dur);
+        const e = 1 - Math.pow(1 - t, 3);
+        const cur = target.map(v => v * e);
+        drawStatic(ctx, cx, cy, radius, n, angles, cur, labels, highlights);
+        if (t < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+}
+
+function drawStatic(ctx, cx, cy, radius, n, angles, values, labels, highlights) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+    // 背景同心环 (5 圈: 20/40/60/80/100)
+    ctx.strokeStyle = '#E8D9CF';
+    ctx.lineWidth = 1;
+    for (let r = 1; r <= 5; r++) {
+        const rad = (radius * r) / 5;
+        ctx.beginPath();
+        for (let i = 0; i < n; i++) {
+            const x = cx + Math.cos(angles[i]) * rad;
+            const y = cy + Math.sin(angles[i]) * rad;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+    }
+
+    // 6 条轴线
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+        const x = cx + Math.cos(angles[i]) * radius;
+        const y = cy + Math.sin(angles[i]) * radius;
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // 刻度数字
+    ctx.fillStyle = '#A89888';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    for (let r = 1; r <= 5; r++) {
+        const rad = (radius * r) / 5;
+        ctx.fillText(String(r * 20), cx + 4, cy - rad - 2);
+    }
+
+    // 数据多边形
+    const points = [];
+    for (let i = 0; i < n; i++) {
+        const x = cx + Math.cos(angles[i]) * radius * values[i];
+        const y = cy + Math.sin(angles[i]) * radius * values[i];
+        points.push({ x, y });
+    }
+    // 填充:用更明显的渐变(中心更亮,边缘更柔和)
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+        if (i === 0) ctx.moveTo(points[i].x, points[i].y);
+        else ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.closePath();
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    grad.addColorStop(0, 'rgba(201, 118, 118, 0.42)');
+    grad.addColorStop(1, 'rgba(201, 118, 118, 0.10)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // === 重点突出: 描边分段绘制 ===
+    // 强项段(>= 90 或 highlight=top) 用 4px 实线 + 高饱和粉
+    // 弱项段(< 70 或 highlight=bot) 用 1.5px 虚线 + 灰
+    // 中间段用 2px 实线 + 粉
+    for (let i = 0; i < n; i++) {
+        const a = points[i];
+        const b = points[(i + 1) % n];
+        const va = Math.round(values[i] * 100);
+        const vb = Math.round(values[(i + 1) % n]);
+        const hi = highlights || [];
+        const isTopSeg = (hi[i] === 'top' || va >= 90) && (hi[(i + 1) % n] === 'top' || vb >= 90);
+        const isBotSeg = (hi[i] === 'bot' || va < 70) && (hi[(i + 1) % n] === 'bot' || vb < 70);
+
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        if (isTopSeg) {
+            ctx.strokeStyle = '#C97676';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([]);
+        } else if (isBotSeg) {
+            ctx.strokeStyle = '#B8AFA6';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+        } else {
+            ctx.strokeStyle = 'rgba(201, 118, 118, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([]);
+        }
+        ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // 6 个顶点 + 数值徽章 (徽章按等级配色)
+    for (let i = 0; i < n; i++) {
+        const p = points[i];
+        const hi = (highlights || [])[i] || 'mid';
+        const scoreVal = Math.round(values[i] * 100);
+
+        // 配色: top=粉红, mid=粉, bot=灰
+        const dotColor = hi === 'top' ? '#C97676' : hi === 'bot' ? '#B8AFA6' : '#D89898';
+        const badgeColor = hi === 'top' ? '#C97676' : hi === 'bot' ? '#9A938B' : '#D89898';
+        const ringColor = hi === 'top' ? 'rgba(201, 118, 118, 0.25)' : 'transparent';
+
+        // 强项光晕
+        if (hi === 'top') {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+            ctx.fillStyle = ringColor;
+            ctx.fill();
+        }
+
+        // 顶点圆
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, hi === 'top' ? 5.5 : 4, 0, Math.PI * 2);
+        ctx.fillStyle = dotColor;
+        ctx.fill();
+        // 顶点白心
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+
+        // 数值徽章
+        const labelR = radius + 38;
+        const lx = cx + Math.cos(angles[i]) * labelR;
+        const ly = cy + Math.sin(angles[i]) * labelR;
+        const txt = String(scoreVal);
+        ctx.font = 'bold 13px sans-serif';
+        const w = ctx.measureText(txt).width + 14;
+        const h = 22;
+        const x0 = lx - w / 2, y0 = ly - h / 2;
+        ctx.fillStyle = badgeColor;
+        roundRect(ctx, x0, y0, w, h, 11);
+        ctx.fill();
+        // 强项徽章加阴影
+        if (hi === 'top') {
+            ctx.save();
+            ctx.shadowColor = 'rgba(201, 118, 118, 0.5)';
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = badgeColor;
+            roundRect(ctx, x0, y0, w, h, 11);
+            ctx.fill();
+            ctx.restore();
+        }
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(txt, lx, ly + 1);
+
+        // 轴标签(强项加粗 + 加深,弱项变浅)
+        const tagR = radius + 70;
+        const tx = cx + Math.cos(angles[i]) * tagR;
+        const ty = cy + Math.sin(angles[i]) * tagR;
+        ctx.fillStyle = hi === 'top' ? '#4A4540' : hi === 'bot' ? '#A8A098' : '#6B6560';
+        ctx.font = hi === 'top' ? 'bold 13px sans-serif' : '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labels[i], tx, ty);
+    }
+    ctx.textBaseline = 'alphabetic';
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+// 模拟用户评价（基于服饰类型 + 名称生成多样化评论）
+function generateUserComments(item) {
+    const name = item.name || '';
+    const cat = item.category || '上衣';
+    const gender = isFemale(item) ? '女生' : '男生';
+
+    const result = [];
+
+    // 通用维度评论
+    const seasonMap = {
+        '上衣': ['春', '夏', '秋', '冬'],
+        '下装': ['日常', '通勤', '约会'],
+        '外套': ['秋季', '冬季', '初春'],
+        '连衣裙': ['夏季', '春夏', '约会'],
+        '鞋子': ['日常', '运动', '通勤'],
+        '配饰': ['日常', '出游', '造型']
+    };
+
+    // 评论 1：购买/穿着体验
+    const wearScore = 85 + Math.floor(Math.random() * 12);
+    result.push({
+        type: '穿着体验',
+        content: `多位${gender}用户反馈：实物质感与图片相符，${name.length > 6 ? '整体做工精细' : '版型经典'}${cat === '鞋子' ? '，尺码标准' : ''}。${cat === '鞋子' ? '鞋底柔软有弹性，长时间走路不累' : '面料舒适透气，亲肤无刺激'}。${wearScore}%的买家会推荐给朋友。`,
+        score: wearScore,
+        source: '用户实测',
+        config: { icon: '👕', summary: '真实用户的穿着反馈' }
+    });
+
+    // 评论 2：搭配场景
+    const scenes = seasonMap[cat] || ['日常'];
+    const scene = scenes[Math.floor(Math.random() * scenes.length)];
+    const sceneScore = 80 + Math.floor(Math.random() * 15);
+    result.push({
+        type: '搭配场景',
+        content: `适合${scene}场合穿着，可${cat === '鞋子' ? '搭配各类裤装裙装' : '与基础款单品组合'}。${Math.random() > 0.5 ? '建议搭配简约配饰突出单品设计感' : '也可作为内搭叠穿使用'}。适合${gender}的多种体型，是衣橱中的百搭单品。`,
+        score: sceneScore,
+        source: '搭配建议',
+        config: { icon: '🌟', summary: '适合的穿着场合与搭配' }
+    });
+
+    // 评论 3：性价比评价
+    const valueScore = 78 + Math.floor(Math.random() * 18);
+    result.push({
+        type: '性价比分析',
+        content: `在同类${cat}中具有较好的性价比。${valueScore > 90 ? '做工与设计感均超出同价位水平，强烈推荐' : valueScore > 85 ? '整体表现均衡，值得入手' : '性价比较高，适合预算有限的用户'}。${Math.random() > 0.5 ? '多次回购率高，是口碑款' : '新用户建议先了解尺码表'}。`,
+        score: valueScore,
+        source: '购买评价',
+        config: { icon: '💰', summary: '价格与品质的平衡' }
+    });
+
+    // 评论 4：季节适应性
+    const seasonScore = 75 + Math.floor(Math.random() * 20);
+    result.push({
+        type: '季节适应性',
+        content: `${cat === '外套' || cat === '鞋子' ? '季节适用性' : '温度适应性'}良好。${Math.random() > 0.5 ? '春秋季节穿着最为适宜' : '冬夏季节也可搭配使用'}。${cat === '外套' ? '保暖性中等偏上，适合10-20度环境' : cat === '鞋子' ? '四季可穿，耐磨耐脏' : '透气性佳，适合日常长时间穿着'}。`,
+        score: seasonScore,
+        source: '季节测评',
+        config: { icon: '🌡️', summary: '适合的温度与季节' }
+    });
+
+    return result;
+}
+
+async function loadCommentsForClothing(clothingId) {
+    try {
+        const response = await fetch(`/api/clothing/${clothingId}/comments`);
+        const data = await response.json();
+        if (data.success) return data.comments || [];
+        return [];
+    } catch (error) {
+        console.error('加载评论失败:', error);
+        return [];
+    }
+}
+
+function closeClothingModal() {
+    document.getElementById('clothingDetailModal').classList.remove('active');
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target.id === 'clothingDetailModal') closeClothingModal();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeClothingModal();
+});
+
+// ===== 收藏功能 =====
+async function getOrCreateGuestUserId() {
+    let userId = localStorage.getItem('favoriteUserId');
+    if (userId) return parseInt(userId, 10);
+    try {
+        const res = await fetch('/api/auth/guest', { method: 'POST' });
+        const data = await res.json();
+        if (data.success && data.user_id) {
+            localStorage.setItem('favoriteUserId', data.user_id);
+            return data.user_id;
+        }
+    } catch (e) {
+        console.error('创建游客用户失败:', e);
+    }
+    return null;
+}
+
+async function recordBrowse(itemType, itemId, title, imageUrl, meta) {
+    const userId = await getOrCreateGuestUserId();
+    if (!userId) return;
+    try {
+        await fetch('/api/browse-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userId,
+                item_type: itemType,
+                item_id: itemId,
+                title: title,
+                image_url: imageUrl,
+                meta: meta || {}
+            })
+        });
+    } catch (e) { console.error('记录浏览失败:', e); }
+}
+
+function showToast(message, type) {
+    let toast = document.getElementById('kk-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'kk-toast';
+        toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);padding:12px 24px;background:rgba(74,69,64,0.92);color:#FDFCFA;border-radius:24px;font-size:14px;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.style.background = type === 'error' ? 'rgba(201,118,118,0.95)' : 'rgba(74,69,64,0.92)';
+    toast.style.opacity = '1';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 1800);
+}
+
+async function favoriteClothingItem(item, btn) {
+    const userId = await getOrCreateGuestUserId();
+    if (!userId) {
+        showToast('操作失败：无法创建用户', 'error');
+        return;
+    }
+    if (btn.disabled) return;
+    btn.disabled = true;
+
+    const signature = `clothing_card::${item.id}`;
+
+    try {
+        if (btn.classList.contains('favorited')) {
+            // 取消收藏
+            const res = await fetch('/api/favorites/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, signature })
+            });
+            const data = await res.json();
+            if (data.success) {
+                btn.classList.remove('favorited');
+                showToast('已取消收藏', 'success');
+            } else {
+                showToast('取消失败：' + (data.error || '未知错误'), 'error');
+            }
+        } else {
+            // 收藏
+            const res = await fetch('/api/favorites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    outfit_combo: [item.id],
+                    weather_context: {
+                        source: 'clothing_card',
+                        clothing_id: item.id,
+                        name: item.name,
+                        category: item.category,
+                        style: item.style,
+                        image_path: item.image_path,
+                        savedAt: new Date().toISOString()
+                    }
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                btn.classList.add('favorited');
+                showToast(data.duplicate ? '已在收藏中 ❤' : '已加入收藏 ❤', 'success');
+            } else {
+                showToast('收藏失败：' + (data.error || '未知错误'), 'error');
+            }
+        }
+    } catch (e) {
+        console.error('操作失败:', e);
+        showToast('操作失败：' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}
