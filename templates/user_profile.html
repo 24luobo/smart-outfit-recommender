@@ -1,0 +1,499 @@
+{% extends "base.html" %}
+
+{% block title %}我的 - 智能穿搭推荐系统{% endblock %}
+
+{% block content %}
+<!-- 快看漫画风格「我的」页面 -->
+<div class="kk-profile-container">
+    <!-- 用户信息头部 -->
+    <div class="kk-profile-header">
+        <div class="kk-profile-avatar">
+            <div class="kk-avatar-circle">👤</div>
+        </div>
+        <div class="kk-profile-info">
+            <div class="kk-profile-name" id="kkProfileName">游客用户</div>
+            <div class="kk-profile-badges">
+                <span class="kk-badge">穿搭达人</span>
+            </div>
+        </div>
+        <div class="kk-profile-settings">⚙️</div>
+    </div>
+    
+    <!-- 数据统计栏 -->
+    <div class="kk-stats-bar">
+        <div class="kk-stat-item">
+            <div class="kk-stat-number" id="kk-stat-favorites">0</div>
+            <div class="kk-stat-label">收藏</div>
+        </div>
+        <div class="kk-stat-divider"></div>
+        <div class="kk-stat-item">
+            <div class="kk-stat-number" id="kk-stat-closet">0</div>
+            <div class="kk-stat-label">衣橱</div>
+        </div>
+        <div class="kk-stat-divider"></div>
+        <div class="kk-stat-item">
+            <div class="kk-stat-number" id="kk-stat-history">0</div>
+            <div class="kk-stat-label">浏览</div>
+        </div>
+    </div>
+    
+    <!-- 功能列表 -->
+    <div class="kk-menu-list">
+        <!-- 个人偏好 -->
+        <div class="kk-menu-item" id="kkPreferencesItem" onclick="location.href='/preferences'">
+            <div class="kk-menu-left">
+                <span class="kk-menu-icon">❤️</span>
+                <span class="kk-menu-title">个人偏好</span>
+            </div>
+            <div class="kk-menu-right">
+                <span class="kk-menu-desc" id="kkPreferencesDesc">未设置</span>
+                <span class="kk-menu-arrow">›</span>
+            </div>
+        </div>
+        
+        <div class="kk-menu-divider"></div>
+        
+        <!-- 我的收藏 -->
+        <div class="kk-menu-item" onclick="showFavorites()">
+            <div class="kk-menu-left">
+                <span class="kk-menu-icon">⭐</span>
+                <span class="kk-menu-title">我的收藏</span>
+            </div>
+            <div class="kk-menu-right">
+                <span class="kk-menu-desc" id="kk-menu-favorites">0套穿搭</span>
+                <span class="kk-menu-arrow">›</span>
+            </div>
+        </div>
+        
+        <!-- 我的衣橱 -->
+        <div class="kk-menu-item" onclick="showCloset()">
+            <div class="kk-menu-left">
+                <span class="kk-menu-icon">👗</span>
+                <span class="kk-menu-title">我的衣橱</span>
+            </div>
+            <div class="kk-menu-right">
+                <span class="kk-menu-desc" id="kk-menu-closet">0件单品</span>
+                <span class="kk-menu-arrow">›</span>
+            </div>
+        </div>
+        
+        <!-- 历史浏览 -->
+        <div class="kk-menu-item" onclick="showHistory()">
+            <div class="kk-menu-left">
+                <span class="kk-menu-icon">📖</span>
+                <span class="kk-menu-title">历史浏览</span>
+            </div>
+            <div class="kk-menu-right">
+                <span class="kk-menu-desc" id="kk-menu-history">0条记录</span>
+                <span class="kk-menu-arrow">›</span>
+            </div>
+        </div>
+        
+        <div class="kk-menu-divider"></div>
+        
+        <!-- 帮助与反馈 -->
+        <div class="kk-menu-item" onclick="showHelp()">
+            <div class="kk-menu-left">
+                <span class="kk-menu-icon">💬</span>
+                <span class="kk-menu-title">帮助与反馈</span>
+            </div>
+            <div class="kk-menu-right">
+                <span class="kk-menu-arrow">›</span>
+            </div>
+        </div>
+
+        <!-- 设置 -->
+        <div class="kk-menu-item" onclick="showSettings()">
+            <div class="kk-menu-left">
+                <span class="kk-menu-icon">⚙️</span>
+                <span class="kk-menu-title">设置</span>
+            </div>
+            <div class="kk-menu-right">
+                <span class="kk-menu-arrow">›</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 登录/登出按钮 -->
+    <div class="kk-profile-footer" id="kkProfileFooter">
+        <button class="kk-login-btn" onclick="showLoginModal()">登录账号</button>
+    </div>
+</div>
+
+<style>
+/* 快看漫画风格「我的」页面 */
+.kk-profile-container {
+    background: #F8F6F3;
+    min-height: calc(100vh - 120px);
+    padding-bottom: 20px;
+}
+
+/* 用户信息头部 */
+.kk-profile-header {
+    background: linear-gradient(135deg, #9AA8B0, #B8A89A);
+    padding: 40px 20px 30px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.kk-profile-avatar {
+    flex-shrink: 0;
+}
+
+.kk-avatar-circle {
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+}
+
+.kk-profile-info {
+    flex: 1;
+}
+
+.kk-profile-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #FDFCFA;
+    margin-bottom: 8px;
+}
+
+.kk-profile-badges {
+    display: flex;
+    gap: 8px;
+}
+
+.kk-badge {
+    background: rgba(255, 255, 255, 0.25);
+    color: #FDFCFA;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.kk-profile-settings {
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+}
+
+/* 数据统计栏 */
+.kk-stats-bar {
+    background: #FDFCFA;
+    margin: -20px 16px 16px;
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.kk-stat-item {
+    text-align: center;
+}
+
+.kk-stat-number {
+    font-size: 24px;
+    font-weight: 700;
+    color: #4A4540;
+    margin-bottom: 4px;
+}
+
+.kk-stat-label {
+    font-size: 12px;
+    color: #8A847E;
+}
+
+.kk-stat-divider {
+    width: 1px;
+    height: 40px;
+    background: #E8E5E0;
+}
+
+/* 功能列表 */
+.kk-menu-list {
+    background: #FDFCFA;
+    margin: 0 16px 16px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.kk-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.kk-menu-item:active {
+    background: #F4F1ED;
+}
+
+.kk-menu-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.kk-menu-icon {
+    font-size: 20px;
+}
+
+.kk-menu-title {
+    font-size: 15px;
+    color: #4A4540;
+    font-weight: 500;
+}
+
+.kk-menu-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kk-menu-desc {
+    font-size: 13px;
+    color: #8A847E;
+}
+
+.kk-menu-arrow {
+    font-size: 18px;
+    color: #A8A29C;
+    font-weight: 300;
+}
+
+.kk-menu-divider {
+    height: 8px;
+    background: #F8F6F3;
+}
+
+/* 底部按钮 */
+.kk-profile-footer {
+    padding: 20px 16px;
+}
+
+.kk-login-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #9AA8B0, #B8A89A);
+    color: #FDFCFA;
+    border: none;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.kk-logout-btn {
+    width: 100%;
+    padding: 16px;
+    background: #FDFCFA;
+    color: #E86B6B;
+    border: 1px solid #E8E5E0;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+</style>
+
+<script>
+// 收藏数据从后端读取，关闭了 localStorage 假数据
+function getUserData() {
+    const data = localStorage.getItem('userAppData');
+    return data ? JSON.parse(data) : {
+        favorites: [],
+        closet: [],
+        history: []
+    };
+}
+
+// 获取后端真实收藏数（与 /favorites 页共用同一 user_id）
+async function getOrCreateGuestUserId() {
+    let userId = localStorage.getItem('favoriteUserId');
+    if (userId) return parseInt(userId, 10);
+    try {
+        const res = await fetch('/api/auth/guest', { method: 'POST' });
+        const data = await res.json();
+        if (data.success && data.user_id) {
+            localStorage.setItem('favoriteUserId', data.user_id);
+            return data.user_id;
+        }
+    } catch (e) {
+        console.error('创建游客用户失败:', e);
+    }
+    return null;
+}
+
+async function loadFavoriteCount() {
+    const userId = await getOrCreateGuestUserId();
+    if (!userId) return 0;
+    try {
+        const res = await fetch(`/api/favorites/${userId}`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.favorites)) {
+            return data.favorites.length;
+        }
+    } catch (e) {
+        console.error('获取收藏数失败:', e);
+    }
+    return 0;
+}
+
+async function loadHistoryCount() {
+    const userId = await getOrCreateGuestUserId();
+    if (!userId) return 0;
+    try {
+        const res = await fetch(`/api/browse-history/${userId}?limit=200`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.history)) {
+            return data.history.length;
+        }
+    } catch (e) {
+        console.error('获取历史数失败:', e);
+    }
+    return 0;
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    // 从后端拉收藏数并更新顶部统计
+    const favCount = await loadFavoriteCount();
+    const histCount = await loadHistoryCount();
+    const statFavorites = document.getElementById('kk-stat-favorites');
+    const menuFavorites = document.getElementById('kk-menu-favorites');
+    const statHistory = document.getElementById('kk-stat-history');
+    const menuHistory = document.getElementById('kk-menu-history');
+    if (statFavorites) statFavorites.textContent = favCount;
+    if (menuFavorites) menuFavorites.textContent = `${favCount}套穿搭`;
+    if (statHistory) statHistory.textContent = histCount;
+    if (menuHistory) menuHistory.textContent = `${histCount}条记录`;
+
+    // 检查登录状态
+    const authState = JSON.parse(localStorage.getItem('authState') || '{}');
+    const profileName = document.getElementById('kkProfileName');
+    const profileFooter = document.getElementById('kkProfileFooter');
+    const preferencesDesc = document.getElementById('kkPreferencesDesc');
+
+    if (authState.isLoggedIn && authState.user) {
+        profileName.textContent = authState.user.username || '用户';
+
+        // 更新偏好描述
+        if (authState.user.preference) {
+            const styleMap = {
+                'casual': '休闲风格',
+                'formal': '商务风格',
+                'sporty': '运动风格',
+                'elegant': '优雅风格',
+                'trendy': '潮流风格',
+                'minimal': '极简风格'
+            };
+            preferencesDesc.textContent = styleMap[authState.user.preference] || authState.user.preference;
+        }
+
+        // 显示登出按钮
+        profileFooter.innerHTML = `
+            <button class="kk-logout-btn" onclick="logoutUser()">退出登录</button>
+        `;
+    } else {
+        profileName.textContent = '游客用户';
+        preferencesDesc.textContent = '未设置';
+
+        // 显示登录按钮
+        profileFooter.innerHTML = `
+            <button class="kk-login-btn" onclick="showLoginModal()">登录账号</button>
+        `;
+    }
+
+    // 检查新手引导数据
+    const onboardingData = JSON.parse(localStorage.getItem('onboardingData') || 'null');
+    if (onboardingData) {
+        const styles = onboardingData.styles || [];
+        if (styles.length > 0) {
+            const styleNames = {
+                'casual': '休闲日常',
+                'elegant': '优雅气质',
+                'sporty': '运动活力',
+                'business': '商务通勤',
+                'street': '街头潮流',
+                'sweet': '甜美可爱'
+            };
+            const displayStyles = styles.map(s => styleNames[s] || s).join('、');
+            preferencesDesc.textContent = displayStyles;
+        }
+    }
+});
+
+// 跳转函数：跳到 /favorites 页面而不是弹 alert
+function showFavorites() {
+    window.location.href = '/favorites';
+}
+
+function showCloset() {
+    window.location.href = '/my-clothes';
+}
+
+function showHistory() {
+    window.location.href = '/history';
+}
+
+function showHelp() {
+    alert('帮助与反馈：\n\n如有问题请联系客服！');
+}
+
+function showSettings() {
+    alert('设置功能开发中...');
+}
+
+// 更新统计数据
+function updateStats() {
+    const userData = getUserData();
+
+    const statFavorites = document.getElementById('kk-stat-favorites');
+    const statCloset = document.getElementById('kk-stat-closet');
+    const statHistory = document.getElementById('kk-stat-history');
+
+    const menuFavorites = document.getElementById('kk-menu-favorites');
+    const menuCloset = document.getElementById('kk-menu-closet');
+    const menuHistory = document.getElementById('kk-menu-history');
+    const preferencesDesc = document.getElementById('kkPreferencesDesc');
+
+    if (statFavorites) statFavorites.textContent = userData.favorites.length;
+    if (statCloset) statCloset.textContent = userData.closet.length;
+    if (statHistory) statHistory.textContent = userData.history.length;
+
+    if (menuFavorites) menuFavorites.textContent = `${userData.favorites.length}套穿搭`;
+    if (menuCloset) menuCloset.textContent = `${userData.closet.length}件单品`;
+    if (menuHistory) menuHistory.textContent = `${userData.history.length}条记录`;
+
+    // 更新个人偏好描述
+    if (preferencesDesc) {
+        const savedPrefs = localStorage.getItem('userPreferences');
+        if (savedPrefs) {
+            const prefs = JSON.parse(savedPrefs);
+            let desc = '';
+            if (prefs.gender) {
+                desc += prefs.gender === 'male' ? '小哥哥' : '小姐姐';
+            }
+            if (prefs.styles && prefs.styles.length > 0) {
+                desc += ' · ' + prefs.styles.slice(0, 2).join('、');
+                if (prefs.styles.length > 2) desc += '等';
+            }
+            preferencesDesc.textContent = desc || '已设置';
+        } else {
+            preferencesDesc.textContent = '未设置';
+        }
+    }
+}
+
+</script>
+{% endblock %}
