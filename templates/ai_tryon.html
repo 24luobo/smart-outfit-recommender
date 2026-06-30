@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 形象试衣 - {{ site_name|default('穿搭推荐') }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(180deg, #FFF8F3 0%, #F4ECE0 100%);
+    min-height: 100vh; color: #3A2E26;
+  }
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(180,140,100,0.08);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .header h1 { font-size: 20px; font-weight: 600; color: #6B4F3A; }
+  .header .nav a { color: #6B4F3A; text-decoration: none; margin-left: 24px; font-size: 14px; opacity: 0.75; }
+  .header .nav a.active { opacity: 1; font-weight: 600; border-bottom: 2px solid #D4A574; }
+
+  .layout {
+    display: grid; grid-template-columns: 320px 1fr 320px; gap: 18px;
+    padding: 18px; max-width: 1600px; margin: 0 auto;
+  }
+  .panel {
+    background: rgba(255,255,255,0.9); border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(180,140,100,0.08); padding: 18px;
+  }
+  .panel h2 { font-size: 16px; color: #6B4F3A; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 13px; color: #8A7466; margin-bottom: 6px; }
+  .form-group input[type="number"], .form-group select {
+    width: 100%; padding: 8px 12px; border: 1px solid #E0D2C0;
+    border-radius: 8px; background: #FFFCF8; font-size: 14px; color: #3A2E26;
+  }
+  .form-group input[type="range"] { width: 100%; accent-color: #D4A574; }
+  .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 6px 14px; border: 1.5px solid #C9B89A; border-radius: 999px; font-size: 13px; cursor: pointer; background: #FFF; color: #5C4632; transition: all 0.15s; }
+  .chip:hover { border-color: #8B6F4E; }
+  .chip.active { background: #8B6F4E; color: #FFF; border-color: #8B6F4E; }
+
+  .btn-primary {
+    width: 100%; padding: 12px;
+    background: linear-gradient(135deg, #D4A574 0%, #B8895A 100%);
+    color: #FFF; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px;
+    box-shadow: 0 4px 12px rgba(212,165,116,0.30); transition: all 0.2s;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(212,165,116,0.40); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    padding: 8px 14px; background: #FFF; color: #6B4F3A;
+    border: 1px solid #D4A574; border-radius: 10px; font-size: 13px; cursor: pointer;
+  }
+  .btn-secondary:hover { background: #FFF1DE; }
+
+  .canvas-area { display: flex; flex-direction: column; gap: 14px; }
+
+  /* 试穿画布核心:人物 + 衣服层叠 */
+  .tryon-stage {
+    position: relative; width: 100%; max-width: 420px; aspect-ratio: 3/4;
+    background: linear-gradient(180deg, #FFFCF8 0%, #F4ECE0 100%);
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 4px 16px rgba(180,140,100,0.10);
+    margin: 0 auto;
+  }
+  .tryon-stage .portrait-img {
+    position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+    object-fit: cover; pointer-events: none; user-select: none;
+  }
+  .tryon-stage .cloth-layer {
+    position: absolute; left: 0; top: 0;
+    transform-origin: center center;
+    cursor: move; touch-action: none;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.15));
+    will-change: transform;
+  }
+  .tryon-stage .empty-hint {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #B8A595; font-size: 14px; text-align: center; padding: 20px;
+  }
+  .tryon-stage .empty-hint .icon { font-size: 48px; display: block; margin-bottom: 10px; }
+
+  /* 控件区 */
+  .tryon-toolbar {
+    background: rgba(255,255,255,0.95);
+    border-radius: 12px; padding: 12px;
+    box-shadow: 0 2px 8px rgba(180,140,100,0.08);
+  }
+  .layer-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 28px; }
+  .layer-chip {
+    padding: 4px 10px; border-radius: 12px; font-size: 12px; cursor: pointer;
+    background: #FFFCF8; color: #6B4F3A; border: 1px solid #E0D2C0;
+    transition: all 0.15s;
+  }
+  .layer-chip.active { background: #D4A574; color: #FFF; border-color: #D4A574; }
+  .layer-chip .x { margin-left: 6px; opacity: 0.6; }
+  .layer-chip .x:hover { opacity: 1; }
+  .ctrl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; color: #6B4F3A; }
+  .ctrl-row label { width: 60px; flex-shrink: 0; }
+  .ctrl-row input[type="range"] { flex: 1; accent-color: #D4A574; }
+  .ctrl-row .val { width: 36px; text-align: right; font-variant-numeric: tabular-nums; color: #A89580; }
+  .ctrl-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ctrl-btns button { flex: 1; min-width: 80px; padding: 6px 8px; font-size: 12px; }
+
+  /* 衣服库 */
+  .clothes-list { max-height: 600px; overflow-y: auto; }
+  /* 分类分组标题 - 仿服饰库风格：轻量 + 小标签 */
+  .cat-group { margin-bottom: 18px; }
+  .cat-group-title {
+    display: flex; align-items: center; gap: 6px;
+    margin: 0 0 8px 2px;
+    font-size: 13px; font-weight: 500; color: #5C4632;
+  }
+  .cat-group-title .cat-icon { font-size: 15px; }
+  .cat-group-title .cat-count { color: #A89580; font-weight: 400; font-size: 11px; margin-left: 4px; }
+  .clothes-item { display: flex; gap: 12px; padding: 10px; border-radius: 10px; cursor: pointer; transition: all 0.15s; border: 1.5px solid transparent; margin-bottom: 6px; align-items: center; }
+  .clothes-item:hover { background: #FAF5EE; border-color: #E0D2C0; }
+  .clothes-item.selected { background: #FFF1DE; border-color: #8B6F4E; }
+  .clothes-item img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; background: #F4ECE0; flex-shrink: 0; }
+  .clothes-item .info { flex: 1; min-width: 0; }
+  .clothes-item .name { font-size: 13px; color: #3A2E26; font-weight: 500; line-height: 1.3; margin-bottom: 6px; }
+  .clothes-item .meta { display: flex; flex-wrap: wrap; gap: 4px; }
+  .clothes-item .meta .tag { font-size: 10px; padding: 2px 7px; border-radius: 999px; background: #F4ECE0; color: #8B6F4E; }
+
+  .toast {
+    position: fixed; top: 80px; right: 24px; z-index: 100;
+    padding: 12px 20px; border-radius: 10px; font-size: 14px;
+    opacity: 0; transform: translateY(-20px);
+    transition: all 0.3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: #E8F5E9; color: #2E7D32; }
+  .toast.error   { background: #FFEBEE; color: #C62828; }
+
+  .loading {
+    display: none; position: absolute; inset: 0;
+    background: rgba(255,255,255,0.7); border-radius: 12px;
+    align-items: center; justify-content: center; z-index: 5;
+  }
+  .loading.show { display: flex; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #E0D2C0; border-top-color: #D4A574; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 上传区域 */
+  .upload-area {
+    border: 2px dashed #D4A574; border-radius: 12px;
+    padding: 24px 16px; text-align: center;
+    background: #FFFCF8; cursor: pointer; transition: all 0.2s;
+    min-height: 160px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .upload-area:hover { background: #FFF1DE; border-color: #B8895A; }
+  .upload-area.dragover { background: #FFF1DE; border-color: #B8895A; border-style: solid; }
+  .upload-icon { font-size: 40px; display: block; margin-bottom: 8px; }
+  .upload-text { color: #6B4F3A; font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .upload-hint { color: #A89580; font-size: 11px; }
+
+  /* 多图缩略图列表 */
+  .thumbs-list {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  }
+  .thumb-item {
+    position: relative; aspect-ratio: 3/4;
+    border: 2px solid transparent; border-radius: 8px; overflow: hidden;
+    cursor: pointer; background: #F4ECE0; transition: all 0.15s;
+  }
+  .thumb-item:hover { border-color: #E0D2C0; }
+  .thumb-item.selected { border-color: #D4A574; }
+  .thumb-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb-item .thumb-num {
+    position: absolute; top: 4px; left: 4px;
+    background: rgba(0,0,0,0.5); color: #FFF; font-size: 10px;
+    padding: 1px 5px; border-radius: 8px;
+  }
+  .thumb-item .thumb-x {
+    position: absolute; top: 2px; right: 2px;
+    background: rgba(198,40,40,0.85); color: #FFF; font-size: 11px;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; opacity: 0; transition: opacity 0.15s;
+  }
+  .thumb-item:hover .thumb-x { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>👗 AI 智能试衣</h1>
+  <div class="nav">
+    <a href="/">推荐</a>
+    <a href="/clothing">服饰库</a>
+    <a href="/my-clothes">个人衣服</a>
+    <a href="/tryon" class="active">在线试衣</a>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- 左侧:上传/选择形象 -->
+  <div class="panel">
+    <h2>📸 我的形象</h2>
+
+    <!-- Tab 切换：上传图片 / 选择形象 -->
+    <div class="form-group">
+      <div class="chip-group" id="mode-tabs" style="margin-bottom: 10px;">
+        <span class="chip active" data-mode="upload">📷 上传图片</span>
+        <span class="chip" data-mode="template">✨ AI 形象</span>
+      </div>
+    </div>
+
+    <!-- 模式1：上传图片 -->
+    <div id="mode-upload">
+      <div class="upload-area" id="upload-area">
+        <input type="file" id="file-input" accept="image/*" multiple style="display:none" />
+        <div class="upload-placeholder" id="upload-placeholder">
+          <span class="upload-icon">📁</span>
+          <div class="upload-text">点击或拖拽上传多张图片</div>
+          <div class="upload-hint">支持多选 JPG/PNG，全身照效果最佳</div>
+        </div>
+        <img id="upload-preview" style="display:none; max-width:100%; max-height:240px; border-radius:10px; margin: 0 auto; display:block;" />
+      </div>
+      <!-- 多图缩略图列表 -->
+      <div class="thumbs-list" id="thumbs-list" style="display:none; margin-top:10px;"></div>
+      <div style="display:flex; gap:6px; margin-top:10px;">
+        <button class="btn-primary" id="btn-use-upload" style="display:none; flex:1;">✓ 使用所选图片</button>
+        <button class="btn-secondary" id="btn-add-more" style="display:none;">+ 添加</button>
+        <button class="btn-secondary" id="btn-clear-uploads" style="display:none; color:#C62828; border-color:#C62828;">清空</button>
+      </div>
+    </div>
+
+    <!-- 模式2：AI 形象参数 -->
+    <div id="mode-template" style="display:none;">
+    <div class="form-group">
+      <label>性别</label>
+      <div class="chip-group" data-name="gender">
+        <span class="chip active" data-val="female">女</span>
+        <span class="chip" data-val="male">男</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>身高 <span id="h-val">165</span> cm</label>
+      <input type="range" id="height" min="140" max="200" value="165" />
+    </div>
+    <div class="form-group">
+      <label>体型</label>
+      <div class="chip-group" data-name="bodyType">
+        <span class="chip active" data-val="slim">纤瘦</span>
+        <span class="chip" data-val="athletic">健美</span>
+        <span class="chip" data-val="curvy">丰满</span>
+        <span class="chip" data-val="muscular">肌肉</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>肤色</label>
+      <div class="chip-group" data-name="skin">
+        <span class="chip active" data-val="fair">白皙</span>
+        <span class="chip" data-val="medium">自然</span>
+        <span class="chip" data-val="dark">小麦</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>发型</label>
+      <div class="chip-group" data-name="hairStyle">
+        <span class="chip active" data-val="long_straight">长直发</span>
+        <span class="chip" data-val="long_wavy">长卷发</span>
+        <span class="chip" data-val="ponytail">马尾</span>
+        <span class="chip" data-val="short">短发</span>
+        <span class="chip" data-val="side_part">偏分</span>
+        <span class="chip" data-val="crew_cut">寸头</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>发色</label>
+      <div class="chip-group" data-name="hairColor">
+        <span class="chip active" data-val="black">黑色</span>
+        <span class="chip" data-val="brown">棕色</span>
+        <span class="chip" data-val="blonde">金色</span>
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-generate">✨ 生成 AI 形象</button>
+    </div>
+  </div>
+
+  <!-- 中间:试穿画布 -->
+  <div class="canvas-area">
+    <div class="tryon-stage" id="tryon-stage">
+      <img class="portrait-img" id="portrait-img" style="display:none" alt="我的形象" />
+      <div class="empty-hint" id="empty-hint">
+        <div>
+          <span class="icon">🪞</span>
+          请在左侧上传图片或选择 AI 形象
+        </div>
+      </div>
+      <div class="loading" id="stage-loading"><div class="spinner"></div></div>
+    </div>
+
+    <div class="tryon-toolbar">
+      <div class="layer-chips" id="layer-chips">
+        <span style="color:#A89580; font-size:12px;">点击右侧衣服 → 试穿</span>
+      </div>
+      <div class="ctrl-row">
+        <label>大小</label>
+        <input type="range" id="ctrl-scale" min="20" max="200" value="100" />
+        <span class="val" id="val-scale">100%</span>
+      </div>
+      <div class="ctrl-row">
+        <label>旋转</label>
+        <input type="range" id="ctrl-rotate" min="-180" max="180" value="0" />
+        <span class="val" id="val-rotate">0°</span>
+      </div>
+      <div class="ctrl-btns">
+        <button class="btn-secondary" id="btn-reset">↺ 重置</button>
+        <button class="btn-secondary" id="btn-flip">⇋ 镜像</button>
+        <button class="btn-secondary" id="btn-del" style="color:#C62828; border-color:#C62828;">✕ 删当前</button>
+        <button class="btn-secondary" id="btn-clear">🗑 全清</button>
+        <button class="btn-primary" id="btn-save" style="flex:2; margin:0;">💾 保存形象</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧:衣服库 -->
+  <div class="panel">
+    <h2 style="font-size: 18px; font-weight: 700; color: #5C4632; margin: 0 0 14px 0; text-align: center; letter-spacing: 1px;">服饰库</h2>
+
+    <!-- 性别筛选（与服饰库一致） -->
+    <div class="form-group" style="margin-bottom: 10px;">
+      <div class="chip-group" id="wardrobe-gender">
+        <span class="chip active" data-val="all">全部</span>
+        <span class="chip" data-val="female">女生服饰</span>
+        <span class="chip" data-val="male">男生服饰</span>
+      </div>
+    </div>
+
+    <!-- 分类筛选（与服饰库一致） -->
+    <div class="form-group" style="margin-bottom: 10px;">
+      <div class="chip-group" id="wardrobe-category">
+        <span class="chip active" data-val="">全部</span>
+        <span class="chip" data-val="上衣">上衣</span>
+        <span class="chip" data-val="下装">下装</span>
+        <span class="chip" data-val="外套">外套</span>
+        <span class="chip" data-val="连衣裙">连衣裙</span>
+        <span class="chip" data-val="鞋子">鞋子</span>
+        <span class="chip" data-val="配饰">配饰</span>
+      </div>
+    </div>
+
+    <!-- 来源筛选：保留(服饰库没有但用户要) - 默认隐藏，可点击展开 -->
+    <div class="form-group" style="margin-bottom: 10px;">
+      <div class="chip-group" id="wardrobe-source">
+        <span class="chip active" data-val="all">全部来源</span>
+        <span class="chip" data-val="library">📦 服饰库</span>
+        <span class="chip" data-val="wardrobe">👔 个人衣橱</span>
+      </div>
+    </div>
+
+    <div style="font-size:11px; color:#A89580; margin-bottom:6px;" id="wardrobe-count">加载中...</div>
+    <div class="clothes-list" id="clothes-list">
+      <div style="text-align:center;color:#A89580;padding:20px;font-size:13px;">加载中...</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 状态 =====
+const params = { gender:'female', height:165, bodyType:'slim', skin:'fair', hairStyle:'long_straight', hairColor:'black' };
+let portraitId = null;
+const layers = []; // { id, name, category, img, x, y, scale, rotate, flipX, baseW, baseH, stageW }
+let activeId = null;
+let idCounter = 0;
+
+// ===== UI 控件 =====
+const $ = id => document.getElementById(id);
+const toastEl = $('toast');
+let toastTimer = null;
+function toast(msg, type='success') {
+  toastEl.textContent = msg;
+  toastEl.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2500);
+}
+
+// chip 联动（仅 AI 形象参数组的 chip，避免与右侧 wardrobe chip 冲突）
+document.querySelectorAll('.chip-group[data-name]').forEach(g => {
+  const name = g.dataset.name;
+  g.addEventListener('click', e => {
+    if (!e.target.classList.contains('chip')) return;
+    g.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    params[name] = e.target.dataset.val;
+  });
+});
+const hSlider = $('height');
+hSlider.addEventListener('input', () => {
+  $('h-val').textContent = hSlider.value;
+  params.height = +hSlider.value;
+});
+
+// ===== 模式切换 (上传 vs AI形象) =====
+const modeTabs = document.querySelectorAll('#mode-tabs .chip');
+const modeUpload = document.getElementById('mode-upload');
+const modeTemplate = document.getElementById('mode-template');
+modeTabs.forEach(t => {
+  t.addEventListener('click', () => {
+    modeTabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    const mode = t.dataset.mode;
+    if (mode === 'upload') {
+      modeUpload.style.display = 'block';
+      modeTemplate.style.display = 'none';
+    } else {
+      modeUpload.style.display = 'none';
+      modeTemplate.style.display = 'block';
+    }
+  });
+});
+
+// ===== 上传图片（多图支持） =====
+const uploadArea = document.getElementById('upload-area');
+const fileInput = document.getElementById('file-input');
+const uploadPlaceholder = document.getElementById('upload-placeholder');
+const uploadPreview = document.getElementById('upload-preview');
+const thumbsList = document.getElementById('thumbs-list');
+const btnUseUpload = document.getElementById('btn-use-upload');
+const btnAddMore = document.getElementById('btn-add-more');
+const btnClearUploads = document.getElementById('btn-clear-uploads');
+let uploadedFiles = []; // [{ id, dataUrl, name }]
+let selectedFileId = null;
+
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => {
+  handleFiles(e.target.files);
+  fileInput.value = '';  // 允许重复选同一文件
+});
+btnAddMore.addEventListener('click', () => fileInput.click());
+btnClearUploads.addEventListener('click', () => {
+  uploadedFiles = [];
+  selectedFileId = null;
+  renderThumbs();
+});
+
+function handleFiles(fileList) {
+  const arr = Array.from(fileList);
+  let pending = arr.length;
+  arr.forEach(file => {
+    if (!file.type.startsWith('image/')) { pending--; return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const id = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      uploadedFiles.push({ id, dataUrl: ev.target.result, name: file.name });
+      if (!selectedFileId) selectedFileId = id;
+      pending--;
+      if (pending === 0) renderThumbs();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderThumbs() {
+  if (uploadedFiles.length === 0) {
+    thumbsList.style.display = 'none';
+    btnUseUpload.style.display = 'none';
+    btnAddMore.style.display = 'none';
+    btnClearUploads.style.display = 'none';
+    uploadPlaceholder.style.display = 'block';
+    uploadPreview.style.display = 'none';
+    return;
+  }
+  uploadPlaceholder.style.display = 'none';
+  uploadPreview.style.display = 'block';
+  // 主预览显示当前选中的
+  const cur = uploadedFiles.find(f => f.id === selectedFileId) || uploadedFiles[0];
+  uploadPreview.src = cur.dataUrl;
+  // 缩略图列表
+  thumbsList.style.display = 'grid';
+  thumbsList.innerHTML = uploadedFiles.map((f, i) => `
+    <div class="thumb-item ${f.id === selectedFileId ? 'selected' : ''}" data-id="${f.id}">
+      <img src="${f.dataUrl}" alt="thumb${i+1}" />
+      <span class="thumb-num">${i+1}</span>
+      <span class="thumb-x" data-del="${f.id}">×</span>
+    </div>
+  `).join('');
+  // 选中事件
+  thumbsList.querySelectorAll('.thumb-item').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.classList.contains('thumb-x')) return;
+      selectedFileId = el.dataset.id;
+      renderThumbs();
+    });
+  });
+  // 删除事件
+  thumbsList.querySelectorAll('.thumb-x').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const delId = el.dataset.del;
+      uploadedFiles = uploadedFiles.filter(f => f.id !== delId);
+      if (selectedFileId === delId) selectedFileId = uploadedFiles[0]?.id || null;
+      renderThumbs();
+    });
+  });
+  btnUseUpload.style.display = 'block';
+  btnAddMore.style.display = 'inline-block';
+  btnClearUploads.style.display = 'inline-block';
+}
+
+btnUseUpload.addEventListener('click', async () => {
+  if (!selectedFileId) { toast('请先选择图片', 'error'); return; }
+  const file = uploadedFiles.find(f => f.id === selectedFileId);
+  if (!file) { toast('图片不存在', 'error'); return; }
+  btnUseUpload.disabled = true;
+  btnUseUpload.textContent = '上传中...';
+  $('stage-loading').classList.add('show');
+  try {
+    const r = await fetch('/api/portrait/upload', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: file.dataUrl })
+    });
+    const data = await r.json();
+    if (!data.success) throw new Error(data.error || '上传失败');
+
+    portraitId = data.portrait_id;
+    const pImg = $('portrait-img');
+    pImg.onload = () => {
+      $('empty-hint').style.display = 'none';
+      layers.forEach(l => l.img.remove());
+      layers.length = 0;
+      activeId = null;
+      renderChips();
+      setActive(null);
+      toast('✓ 上传成功，可试穿');
+    };
+    pImg.src = data.portrait_url + '?t=' + Date.now();
+    pImg.style.display = 'block';
+  } catch (e) {
+    toast('上传失败: ' + e.message, 'error');
+  } finally {
+    btnUseUpload.disabled = false;
+    btnUseUpload.textContent = '✓ 使用所选图片';
+    $('stage-loading').classList.remove('show');
+  }
+});
+$('btn-generate').addEventListener('click', async () => {
+  const btn = $('btn-generate');
+  btn.disabled = true; btn.textContent = '生成中...';
+  $('stage-loading').classList.add('show');
+  try {
+    const r = await fetch('/api/portrait/generate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params)
+    });
+    const data = await r.json();
+    if (!data.success) throw new Error(data.error || '生成失败');
+    portraitId = data.portrait_id;
+    const pImg = $('portrait-img');
+    pImg.onload = () => {
+      $('empty-hint').style.display = 'none';
+      // 清空旧层
+      layers.forEach(l => l.img.remove());
+      layers.length = 0;
+      activeId = null;
+      renderChips();
+      setActive(null);
+      toast(`✓ 已生成: ${data.matched_template.tags.join('·')}`);
+    };
+    pImg.src = data.portrait_url + '?t=' + Date.now();
+    pImg.style.display = 'block';
+  } catch (e) {
+    toast('生成失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '✨ 生成我的形象';
+    $('stage-loading').classList.remove('show');
+  }
+});
+
+// ===== 加载服饰库+个人衣柜（支持男女/分类/来源筛选） =====
+const wardrobeFilter = { gender: 'all', source: 'all', category: '' };
+
+function bindWardrobeChips(groupId, key) {
+  document.querySelectorAll(`#${groupId} .chip`).forEach(c => {
+    c.addEventListener('click', () => {
+      document.querySelectorAll(`#${groupId} .chip`).forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+      wardrobeFilter[key] = c.dataset.val;
+      loadClothes();
+    });
+  });
+}
+bindWardrobeChips('wardrobe-gender', 'gender');
+bindWardrobeChips('wardrobe-source', 'source');
+bindWardrobeChips('wardrobe-category', 'category');
+
+async function loadClothes() {
+  const list = $('clothes-list');
+  const countEl = $('wardrobe-count');
+  list.innerHTML = '<div style="text-align:center;color:#A89580;padding:20px;font-size:13px;">加载中...</div>';
+  let items = [];
+  try {
+    // 个人衣橱：直接从 localStorage 读取（与"个人衣服"页面共享同一份数据）
+    if (wardrobeFilter.source === 'wardrobe') {
+      const myClothes = JSON.parse(localStorage.getItem('myClothes') || '[]');
+      const CATEGORY_MAP = { 'top': '上衣', 'bottom': '下装', 'dress': '连衣裙', 'outerwear': '外套', 'shoes': '鞋子', 'accessory': '配饰' };
+      items = myClothes.map(c => ({
+        id: 'w_' + c.id,
+        name: c.categoryName || CATEGORY_MAP[c.category] || '个人衣物',
+        category: CATEGORY_MAP[c.category] || '其他',
+        color: '',
+        image: c.image,   // dataURL
+        gender: 'unisex',
+        source: 'wardrobe',
+      })).filter(it => {
+        if (wardrobeFilter.category && it.category !== wardrobeFilter.category) return false;
+        return true;
+      });
+      countEl.textContent = `共 ${items.length} 件`;
+      renderClothesList(list, items);
+      if (!items.length) {
+        list.innerHTML = '<div style="text-align:center;color:#A89580;padding:20px;font-size:13px;">还没有个人衣物<br><a href="/my-clothes" style="color:#8B6F4E;text-decoration:underline;">去上传 →</a></div>';
+        return;
+      }
+      return;
+    }
+    // 服饰库 / 全部来源：走后端 API
+    const params = new URLSearchParams({
+      gender: wardrobeFilter.gender,
+      source: wardrobeFilter.source,
+      category: wardrobeFilter.category,
+      limit: 100,
+    });
+    const r = await fetch('/api/tryon-wardrobe?' + params);
+    const data = await r.json();
+    if (!data.success) throw new Error(data.error || '加载失败');
+    items = data.items || [];
+    countEl.textContent = `共 ${items.length} 件`;
+    if (!items.length) {
+      list.innerHTML = '<div style="text-align:center;color:#A89580;padding:20px;font-size:13px;">无符合条件的衣物</div>';
+      return;
+    }
+    renderClothesList(list, items);
+  } catch (e) {
+    list.innerHTML = '<div style="text-align:center;color:#C62828;padding:20px;font-size:13px;">加载失败</div>';
+    countEl.textContent = '加载失败';
+  }
+}
+
+function renderClothesList(list, items) {
+  list.innerHTML = items.map(it => {
+    let imgSrc = it.image || '';
+    if (imgSrc.startsWith('data:')) {
+      // dataURL 原样用
+    } else if (imgSrc && !imgSrc.startsWith('/') && !imgSrc.startsWith('http')) {
+      imgSrc = '/' + imgSrc;
+    } else if (imgSrc && !imgSrc.startsWith('/static/') && !imgSrc.startsWith('http')) {
+      imgSrc = '/static/' + imgSrc.replace(/^static\//, '');
+    }
+    if (!imgSrc) imgSrc = '/static/assets/outfit1.jpg';
+    const sourceTag = it.source === 'wardrobe' ? '👔' : '📦';
+    return `<div class="clothes-item" data-id="${it.id}" data-name="${it.name || ''}" data-cat="${it.category || '其他'}" data-image="${imgSrc}">
+      <img src="${imgSrc}" onerror="this.src='/static/assets/outfit1.jpg'" />
+      <div class="info">
+        <div class="name">${it.name || '服饰'}</div>
+        <div class="meta">
+          ${it.category ? `<span class="tag">${it.category}</span>` : ''}
+          ${it.color ? `<span class="tag">${it.color}</span>` : ''}
+          <span class="tag">${sourceTag} ${it.source === 'wardrobe' ? '衣橱' : '库'}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  // 选中了具体分类 → 显示轻量分类标题
+  if (wardrobeFilter.category) {
+    const group = document.createElement('div');
+    group.className = 'cat-group';
+    const icon = CAT_ICON[wardrobeFilter.category] || '🧺';
+    group.innerHTML = `<div class="cat-group-title"><span class="cat-icon">${icon}</span>${wardrobeFilter.category}<span class="cat-count">(${items.length})</span></div>`;
+    const oldItems = Array.from(list.children);
+    list.innerHTML = '';
+    oldItems.forEach(el => group.appendChild(el));
+    list.appendChild(group);
+  }
+  // 事件委托（list.onclick 在 renderClothesList 内部，确保 list 引用正确）
+  list.onclick = e => {
+    const item = e.target.closest('.clothes-item');
+    if (!item || !list.contains(item)) return;
+    list.querySelectorAll('.clothes-item').forEach(x => x.classList.remove('selected'));
+    item.classList.add('selected');
+    addLayer(item.dataset.id, item.dataset.name, item.dataset.image, item.dataset.cat);
+  };
+}
+
+// ===== 加一层衣服 =====
+//   - 服饰库 item_id: 后端抠图，返回 cloth_url
+//   - 个人衣橱 item_id: 'w_xxx'，直接用 dataURL 加载
+async function addLayer(itemId, itemName, imageData, category) {
+  if (!portraitId) { toast('请先生成形象', 'error'); return; }
+  if (layers.length >= 6) { toast('最多 6 件', 'error'); return; }
+  $('stage-loading').classList.add('show');
+  try {
+    const isWardrobe = String(itemId).startsWith('w_');
+    let clothUrl, clothW, clothH, portraitW, portraitH, defaultPos, itemInfo;
+    // 不管是服饰库还是个人衣橱，都走后端抠图（与服饰库统一效果）
+    const r = await fetch('/api/portrait/dress', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        portrait_id: portraitId,
+        item_id: isWardrobe ? '' : itemId,  // 个人衣橱不传 item_id
+        image_data: isWardrobe ? imageData : '',  // 个人衣橱传 dataURL
+        item_name: isWardrobe ? itemName : '',
+        item_category: isWardrobe ? (category || '上衣') : '',
+      })
+    });
+    const data = await r.json();
+    if (!data.success) throw new Error(data.error || '抠图失败');
+    clothUrl = data.cloth_url + '?t=' + Date.now();
+    clothW = data.cloth_w; clothH = data.cloth_h;
+    portraitW = data.portrait_w; portraitH = data.portrait_h;
+    defaultPos = data.default;
+    itemInfo = data.item;
+    const stage = $('tryon-stage');
+    const stageW = stage.clientWidth;
+    const ratio = stageW / portraitW;
+    // defaultPos.scale 语义: 目标展示宽度占人像宽度的比例(0~1)
+    // baseW = stageW * target_pct (已含 ratio)
+    const baseW = stageW * defaultPos.scale;
+    const baseH = baseW * (clothH / clothW);
+    const cImg = new Image();
+    cImg.className = 'cloth-layer';
+    cImg.style.width = baseW + 'px';
+    stage.appendChild(cImg);
+    const layer = {
+      id: ++idCounter,
+      name: itemInfo.name,
+      category: itemInfo.category,
+      img: cImg,
+      x: stageW * defaultPos.x_pct - baseW / 2,
+      y: stageW * defaultPos.y_pct * (portraitH / portraitW) - baseH / 2,
+      scale: 1, rotate: 0, flipX: false,
+      baseW, baseH, stageW,
+    };
+    layers.push(layer);
+    activeId = layer.id;
+    // 服饰库等加载完；个人衣橱dataURL已经缓存，立即可用
+    if (!isWardrobe) {
+      await new Promise((res, rej) => {
+        cImg.onload = res; cImg.onerror = () => rej(new Error('衣服图加载失败'));
+        cImg.src = clothUrl;
+      });
+    } else {
+      cImg.src = clothUrl;
+    }
+    applyTransform(layer);
+    attachDrag(layer);
+    renderChips();
+    setActive(layer.id);
+    toast(`✓ 已试穿: ${itemInfo.name}`);
+  } catch (e) {
+    toast('失败: ' + e.message, 'error');
+  } finally {
+    $('stage-loading').classList.remove('show');
+  }
+}
+
+// ===== 渲染层 chip =====
+function renderChips() {
+  const box = $('layer-chips');
+  if (!layers.length) {
+    box.innerHTML = '<span style="color:#A89580; font-size:12px;">点击右侧衣服 → 试穿</span>';
+    return;
+  }
+  box.innerHTML = layers.map((l, i) => {
+    const isActive = l.id === activeId;
+    return `<span class="layer-chip ${isActive ? 'active' : ''}" data-id="${l.id}">${i+1}. ${(l.category||'').slice(0,2)} ${l.name.slice(0,6)}<span class="x" data-del="${l.id}">×</span></span>`;
+  }).join('');
+  box.querySelectorAll('.layer-chip').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.classList.contains('x')) return;
+      setActive(+el.dataset.id);
+    });
+  });
+  box.querySelectorAll('[data-del]').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      removeLayer(+el.dataset.del);
+    });
+  });
+}
+
+function setActive(id) {
+  activeId = id;
+  const l = layers.find(x => x.id === id);
+  if (l) {
+    $('ctrl-scale').value = Math.round(l.scale * 100);
+    $('val-scale').textContent = Math.round(l.scale * 100) + '%';
+    $('ctrl-rotate').value = l.rotate;
+    $('val-rotate').textContent = l.rotate + '°';
+  }
+  renderChips();
+}
+
+function removeLayer(id) {
+  const idx = layers.findIndex(l => l.id === id);
+  if (idx < 0) return;
+  layers[idx].img.remove();
+  layers.splice(idx, 1);
+  if (activeId === id) activeId = layers.length ? layers[layers.length-1].id : null;
+  setActive(activeId);
+}
+
+function clearAllLayers() {
+  layers.forEach(l => l.img.remove());
+  layers.length = 0;
+  activeId = null;
+  setActive(null);
+}
+
+// ===== transform =====
+function applyTransform(l) {
+  if (!l || !l.img) return;
+  const flip = l.flipX ? -1 : 1;
+  const t = `translate(${l.x}px, ${l.y}px) scale(${l.scale * flip}, ${l.scale})${l.rotate ? ' rotate(' + l.rotate + 'deg)' : ''}`;
+  l.img.style.transform = t;
+}
+
+// ===== 拖拽(单层) =====
+const drag = { active: null, sx: 0, sy: 0, ox: 0, oy: 0 };
+function attachDrag(l) {
+  const down = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    setActive(l.id);
+    const pt = e.touches ? e.touches[0] : e;
+    drag.active = l; drag.sx = pt.clientX; drag.sy = pt.clientY;
+    drag.ox = l.x; drag.oy = l.y;
+  };
+  l.img.addEventListener('mousedown', down);
+  l.img.addEventListener('touchstart', down, { passive: false });
+}
+function onMove(e) {
+  if (!drag.active) return;
+  const pt = e.touches ? e.touches[0] : e;
+  drag.active.x = drag.ox + (pt.clientX - drag.sx);
+  drag.active.y = drag.oy + (pt.clientY - drag.sy);
+  applyTransform(drag.active);
+  e.preventDefault();
+}
+function onUp() { drag.active = null; }
+window.addEventListener('mousemove', onMove);
+window.addEventListener('touchmove', onMove, { passive: false });
+window.addEventListener('mouseup', onUp);
+window.addEventListener('touchend', onUp);
+
+// ===== 控件 =====
+$('ctrl-scale').addEventListener('input', e => {
+  const l = layers.find(x => x.id === activeId);
+  if (!l) return;
+  l.scale = +e.target.value / 100;
+  $('val-scale').textContent = e.target.value + '%';
+  applyTransform(l);
+});
+$('ctrl-rotate').addEventListener('input', e => {
+  const l = layers.find(x => x.id === activeId);
+  if (!l) return;
+  l.rotate = +e.target.value;
+  $('val-rotate').textContent = l.rotate + '°';
+  applyTransform(l);
+});
+$('btn-reset').addEventListener('click', () => {
+  const l = layers.find(x => x.id === activeId);
+  if (!l) return;
+  l.scale = 1; l.rotate = 0; l.flipX = false;
+  setActive(l.id); applyTransform(l);
+});
+$('btn-flip').addEventListener('click', () => {
+  const l = layers.find(x => x.id === activeId);
+  if (!l) return;
+  l.flipX = !l.flipX; applyTransform(l);
+});
+$('btn-del').addEventListener('click', () => { if (activeId) removeLayer(activeId); });
+$('btn-clear').addEventListener('click', () => { clearAllLayers(); toast('已清空'); });
+
+// ===== 保存 =====
+$('btn-save').addEventListener('click', async () => {
+  if (!portraitId || !layers.length) { toast('请先试穿', 'error'); return; }
+  const pImg = $('portrait-img');
+  if (!pImg || !pImg.complete || !pImg.naturalWidth) { toast('人像未加载完', 'error'); return; }
+  // 1) 校验所有 layer 的 img 都已加载
+  for (const l of layers) {
+    if (!l || !l.img || !l.img.complete || !l.img.naturalWidth) {
+      toast('有衣服未加载完', 'error');
+      return;
+    }
+  }
+  // 2) 校验所有 layer 的 img 仍在 DOM 中(可能被外部代码移除)
+  for (const l of layers) {
+    if (!l.img.isConnected) {
+      console.warn('[save] layer img 已被移除 DOM,跳过', l.id, l.name);
+      toast('有衣服图层已失效,请重新试穿', 'error');
+      return;
+    }
+  }
+  const cv = document.createElement('canvas');
+  cv.width = pImg.naturalWidth; cv.height = pImg.naturalHeight;
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(pImg, 0, 0);
+  const stageEl = $('tryon-stage');
+  if (!stageEl) { toast('舞台元素不存在', 'error'); return; }
+  const sRect = stageEl.getBoundingClientRect();
+  const ratio = sRect.width / pImg.naturalWidth;
+  for (const l of layers) {
+    if (!l || !l.img || !l.img.isConnected) continue;  // 双重保险
+    let cRect;
+    try {
+      cRect = l.img.getBoundingClientRect();
+    } catch (e) {
+      console.warn('[save] getBoundingClientRect 失败,跳过', l.id, e);
+      continue;
+    }
+    const w = cRect.width, h = cRect.height;
+    const x = (cRect.left - sRect.left) / ratio;
+    const y = (cRect.top  - sRect.top)  / ratio;
+    const wP = w / ratio, hP = h / ratio;
+    ctx.save();
+    ctx.translate(x + wP/2, y + hP/2);
+    ctx.rotate(l.rotate * Math.PI / 180);
+    if (l.flipX) ctx.scale(-1, 1);
+    ctx.drawImage(l.img, -wP/2, -hP/2, wP, hP);
+    ctx.restore();
+  }
+  const dataUrl = cv.toDataURL('image/png');
+  const btn = $('btn-save');
+  btn.disabled = true; btn.textContent = '保存中...';
+  try {
+    const r = await fetch('/api/portrait/save-dressed', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ portrait_id: portraitId, image: dataUrl })
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error || '保存失败');
+    toast('✓ 已保存');
+    const a = document.createElement('a');
+    a.href = d.saved_url; a.download = `tryon_${portraitId}.png`; a.click();
+  } catch (e) {
+    toast('保存失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 保存形象';
+  }
+});
+
+// ===== 分类图标 =====
+const CAT_ICON = { '上衣': '👕', '下装': '👖', '外套': '🧥', '连衣裙': '👗', '鞋子': '👟', '配饰': '🎩', '其他': '🧺' };
+
+// ===== 从"个人衣服"页面跳转过来：自动打开个人衣橱chip =====
+const _fromMyClothes = sessionStorage.getItem('tryon_open_wardrobe');
+const _selectedClotheId = sessionStorage.getItem('tryon_selected_clothe_id');
+if (_fromMyClothes === '1') {
+  sessionStorage.removeItem('tryon_open_wardrobe');
+  sessionStorage.removeItem('tryon_selected_clothe_id');
+  // 切换"个人衣橱"chip
+  const sourceChips = document.querySelectorAll('#wardrobe-source .chip');
+  sourceChips.forEach(c => {
+    c.classList.toggle('active', c.dataset.val === 'wardrobe');
+  });
+  wardrobeFilter.source = 'wardrobe';
+}
+
+loadClothes();
+
+// ===== 自动选中的衣服（来自"个人衣服"页面的"使用"按钮） =====
+const _autoSelectId = (_fromMyClothes === '1' && _selectedClotheId) ? ('w_' + _selectedClotheId) : null;
+if (_autoSelectId) {
+  // 监听 list 变化，找到目标后立即高亮
+  const _listEl = $('clothes-list');
+  const _tryHighlight = () => {
+    const target = _listEl.querySelector(`.clothes-item[data-id="${_autoSelectId}"]`);
+    if (target) {
+      _listEl.querySelectorAll('.clothes-item').forEach(x => x.classList.remove('selected'));
+      target.classList.add('selected');
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      toast('✓ 已从个人衣橱选择，点击衣服加载到画布');
+      return true;
+    }
+    return false;
+  };
+  // 立即尝试 + 监听后续变化（个人衣橱可能因fetch异步渲染）
+  if (!_tryHighlight()) {
+    const _mo = new MutationObserver(() => { if (_tryHighlight()) _mo.disconnect(); });
+    _mo.observe(_listEl, { childList: true, subtree: true });
+    // 兜底：5秒后停止监听
+    setTimeout(() => _mo.disconnect(), 5000);
+  }
+}
+</script>
+</body>
+</html>
