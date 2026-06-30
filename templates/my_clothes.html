@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+
+{% block title %}个人衣服 - 智能穿搭推荐系统{% endblock %}
+
+{% block content %}
+<div class="kk-main-content">
+    <!-- 页面标题 -->
+    <div class="kk-page-header">
+        <h1>我的衣服</h1>
+        <p>上传你自己的衣服，在在线试衣中搭配</p>
+    </div>
+
+    <!-- 潮流预测按钮 -->
+    <div class="kk-trend-btn-section">
+        <button class="kk-trend-prediction-btn" onclick="window.location.href='/trend-prediction'">
+            <span class="kk-trend-icon">🔮</span>
+            <span class="kk-trend-text">潮流预测</span>
+        </button>
+    </div>
+
+    <!-- 上传区域 -->
+    <div class="kk-upload-section">
+        <div class="kk-upload-box" id="uploadBox">
+            <div class="kk-upload-icon">📷</div>
+            <div class="kk-upload-text">点击或拖拽上传衣服图片</div>
+            <div class="kk-upload-hint">支持 JPG、PNG 格式，最大 5MB</div>
+            <input type="file" id="clotheInput" accept="image/*" style="display: none;">
+        </div>
+        
+        <!-- 衣服分类选择 -->
+        <div class="kk-category-select">
+            <label>选择衣服分类：</label>
+            <select id="clotheCategory">
+                <option value="top">上衣</option>
+                <option value="bottom">下装</option>
+                <option value="dress">连衣裙</option>
+                <option value="outerwear">外套</option>
+                <option value="shoes">鞋子</option>
+                <option value="accessory">配饰</option>
+            </select>
+            <button class="kk-upload-btn" onclick="uploadClothe()">上传衣服</button>
+        </div>
+    </div>
+
+    <!-- 我的衣服列表 -->
+    <div class="kk-my-clothes-section">
+        <div class="kk-section-title">
+            <h2>我的衣橱</h2>
+            <span class="kk-clothes-count" id="clothesCount">0 件</span>
+        </div>
+        
+        <div class="kk-my-clothes-grid" id="myClothesGrid">
+            <!-- 衣服卡片会通过JS动态加载 -->
+        </div>
+        
+        <div class="kk-empty-state" id="emptyState" style="display: none;">
+            <div class="kk-empty-icon">👔</div>
+            <div class="kk-empty-text">还没有上传衣服</div>
+            <div class="kk-empty-hint">上传你的第一件衣服开始搭配吧！</div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .kk-main-content {
+        margin-top: 50px;
+        margin-bottom: 70px;
+        padding: 16px;
+    }
+
+    .kk-page-header {
+        margin-bottom: 24px;
+    }
+
+    .kk-page-header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #4A4540;
+        margin-bottom: 6px;
+    }
+
+    .kk-page-header p {
+        font-size: 14px;
+        color: #8A847E;
+    }
+
+    .kk-trend-btn-section {
+        margin-bottom: 24px;
+    }
+
+    .kk-trend-prediction-btn {
+        width: 100%;
+        padding: 20px;
+        background: linear-gradient(135deg, #9AA8B0 0%, #A8B8AA 100%);
+        color: #FDFCFA;
+        border: none;
+        border-radius: 16px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        box-shadow: 0 4px 12px rgba(154, 168, 176, 0.3);
+    }
+
+    .kk-trend-prediction-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(154, 168, 176, 0.4);
+    }
+
+    .kk-trend-icon {
+        font-size: 24px;
+    }
+
+    .kk-trend-text {
+        font-size: 16px;
+    }
+
+    .kk-upload-section {
+        background: #FDFCFA;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 12px rgba(74, 69, 64, 0.06);
+    }
+
+    .kk-upload-box {
+        border: 2px dashed #B8A89A;
+        border-radius: 12px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 16px;
+    }
+
+    .kk-upload-box:hover {
+        border-color: #9AA8B0;
+        background: #F8F6F3;
+    }
+
+    .kk-upload-icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+    }
+
+    .kk-upload-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: #4A4540;
+        margin-bottom: 6px;
+    }
+
+    .kk-upload-hint {
+        font-size: 13px;
+        color: #A8A29C;
+    }
+
+    .kk-category-select {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .kk-category-select label {
+        font-size: 14px;
+        color: #6B6560;
+        font-weight: 500;
+    }
+
+    .kk-category-select select {
+        padding: 10px 16px;
+        border: 1px solid #E8E5E0;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #4A4540;
+        background: #FDFCFA;
+        outline: none;
+    }
+
+    .kk-upload-btn {
+        padding: 10px 24px;
+        background: #9AA8B0;
+        color: #FDFCFA;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .kk-upload-btn:hover {
+        background: #8A9AA0;
+        transform: translateY(-1px);
+    }
+
+    .kk-my-clothes-section {
+        background: #FDFCFA;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 2px 12px rgba(74, 69, 64, 0.06);
+    }
+
+    .kk-section-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .kk-section-title h2 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #4A4540;
+    }
+
+    .kk-clothes-count {
+        font-size: 14px;
+        color: #8A847E;
+    }
+
+    .kk-my-clothes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
+    }
+
+    .kk-my-clothe-card {
+        background: #F8F6F3;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        transition: all 0.3s;
+    }
+
+    .kk-my-clothe-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(74, 69, 64, 0.12);
+    }
+
+    .kk-my-clothe-image {
+        width: 100%;
+        aspect-ratio: 1;
+        background: #F4F1ED;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .kk-my-clothe-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .kk-my-clothe-info {
+        padding: 10px;
+    }
+
+    .kk-my-clothe-category {
+        font-size: 12px;
+        color: #9AA8B0;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .kk-my-clothe-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .kk-my-clothe-btn {
+        flex: 1;
+        padding: 6px;
+        font-size: 11px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .kk-my-clothe-btn.use {
+        background: #A8B8AA;
+        color: #FDFCFA;
+    }
+
+    .kk-my-clothe-btn.delete {
+        background: #E8E5E0;
+        color: #6B6560;
+    }
+
+    .kk-my-clothe-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .kk-empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .kk-empty-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+    }
+
+    .kk-empty-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: #6B6560;
+        margin-bottom: 6px;
+    }
+
+    .kk-empty-hint {
+        font-size: 14px;
+        color: #A8A29C;
+    }
+
+    @media (min-width: 768px) {
+        .kk-main-content {
+            max-width: 1000px;
+            margin: 50px auto 70px;
+        }
+
+        .kk-my-clothes-grid {
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let myClothes = JSON.parse(localStorage.getItem('myClothes') || '[]');
+let selectedImageData = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 绑定上传区域点击事件
+    document.getElementById('uploadBox').addEventListener('click', function() {
+        document.getElementById('clotheInput').click();
+    });
+
+    // 绑定文件选择事件
+    document.getElementById('clotheInput').addEventListener('change', function(e) {
+        handleFileSelect(e);
+    });
+
+    // 绑定拖拽事件
+    const uploadBox = document.getElementById('uploadBox');
+    
+    uploadBox.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadBox.style.borderColor = '#9AA8B0';
+        uploadBox.style.background = '#F8F6F3';
+    });
+
+    uploadBox.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadBox.style.borderColor = '#B8A89A';
+        uploadBox.style.background = 'transparent';
+    });
+
+    uploadBox.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadBox.style.borderColor = '#B8A89A';
+        uploadBox.style.background = 'transparent';
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFile({ target: { files: files } });
+        }
+    });
+
+    loadMyClothes();
+});
+
+function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) {
+        processFile(file);
+    }
+}
+
+function processFile(file) {
+    if (!file.type.startsWith('image/')) {
+        alert('请上传图片文件！');
+        return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+        alert('图片大小不能超过5MB！');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        selectedImageData = e.target.result;
+        // 显示预览
+        document.getElementById('uploadBox').innerHTML = `
+            <img src="${selectedImageData}" style="max-width: 150px; max-height: 150px; border-radius: 8px;">
+            <div style="margin-top: 12px; font-size: 14px; color: #6B6560;">已选择图片，点击上传按钮保存</div>
+        `;
+    };
+    reader.readAsDataURL(file);
+}
+
+function uploadClothe() {
+    if (!selectedImageData) {
+        alert('请先选择图片！');
+        return;
+    }
+
+    const category = document.getElementById('clotheCategory').value;
+    const categoryNames = {
+        'top': '上衣',
+        'bottom': '下装',
+        'dress': '连衣裙',
+        'outerwear': '外套',
+        'shoes': '鞋子',
+        'accessory': '配饰'
+    };
+
+    const newClothe = {
+        id: Date.now(),
+        image: selectedImageData,
+        category: category,
+        categoryName: categoryNames[category],
+        uploadTime: new Date().toLocaleString()
+    };
+
+    myClothes.push(newClothe);
+    localStorage.setItem('myClothes', JSON.stringify(myClothes));
+
+    // 重置上传区域
+    selectedImageData = null;
+    document.getElementById('uploadBox').innerHTML = `
+        <div class="kk-upload-icon">📷</div>
+        <div class="kk-upload-text">点击或拖拽上传衣服图片</div>
+        <div class="kk-upload-hint">支持 JPG、PNG 格式，最大 5MB</div>
+    `;
+    document.getElementById('clotheInput').value = '';
+
+    loadMyClothes();
+    alert('衣服上传成功！');
+}
+
+function loadMyClothes() {
+    const grid = document.getElementById('myClothesGrid');
+    const emptyState = document.getElementById('emptyState');
+    const countEl = document.getElementById('clothesCount');
+
+    countEl.textContent = `${myClothes.length} 件`;
+
+    if (myClothes.length === 0) {
+        grid.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+    }
+
+    grid.style.display = 'grid';
+    emptyState.style.display = 'none';
+
+    grid.innerHTML = myClothes.map(clothe => `
+        <div class="kk-my-clothe-card">
+            <div class="kk-my-clothe-image">
+                <img src="${clothe.image}" alt="我的衣服">
+            </div>
+            <div class="kk-my-clothe-info">
+                <div class="kk-my-clothe-category">${clothe.categoryName}</div>
+                <div class="kk-my-clothe-actions">
+                    <button class="kk-my-clothe-btn use" onclick="useClothe(${clothe.id})">使用</button>
+                    <button class="kk-my-clothe-btn delete" onclick="deleteClothe(${clothe.id})">删除</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function useClothe(id) {
+    const clothe = myClothes.find(c => c.id === id);
+    if (clothe) {
+        // 保存选中的衣服 + 试衣页面要打开"个人衣橱"chip 的标记
+        sessionStorage.setItem('tryon_selected_clothe_id', String(clothe.id));
+        sessionStorage.setItem('tryon_open_wardrobe', '1');
+        // 跳转在线试衣页面
+        window.location.href = '/tryon';
+    }
+}
+
+function deleteClothe(id) {
+    if (confirm('确定要删除这件衣服吗？')) {
+        myClothes = myClothes.filter(c => c.id !== id);
+        localStorage.setItem('myClothes', JSON.stringify(myClothes));
+        loadMyClothes();
+    }
+}
+</script>
+{% endblock %}
