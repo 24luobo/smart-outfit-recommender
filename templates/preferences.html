@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="kk-content">
+    <style>
+        .preferences-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .preferences-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .preferences-header h1 {
+            font-size: 28px;
+            color: #4A4540;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .preferences-header p {
+            font-size: 14px;
+            color: #8A847E;
+        }
+
+        .preferences-section {
+            background: #FDFCFA;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(74, 69, 64, 0.06);
+            border: 1px solid rgba(154, 168, 176, 0.12);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #4A4540;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title .icon {
+            font-size: 20px;
+        }
+
+        /* 性别 - 圆形 */
+        .gender-options {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+        }
+
+        .gender-option {
+            width: 124px;
+            height: 124px;
+            border-radius: 50%;
+            border: 2px solid #E8E5E0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #F8F6F3 0%, #F4F1ED 100%);
+        }
+
+        .gender-option:hover {
+            transform: translateY(-2px);
+            border-color: #9AA8B0;
+        }
+
+        .gender-option.selected {
+            border-color: #9AA8B0;
+            background: linear-gradient(135deg, #9AA8B0 0%, #7A8A92 100%);
+            box-shadow: 0 8px 20px rgba(122, 138, 146, 0.3);
+        }
+
+        .gender-option.selected .gender-icon,
+        .gender-option.selected .gender-label {
+            color: #FDFCFA;
+        }
+
+        .gender-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+            color: #4A4540;
+            transition: color 0.3s;
+        }
+
+        .gender-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #4A4540;
+            transition: color 0.3s;
+        }
+
+        /* 风格卡片网格 */
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 14px;
+        }
+
+        .style-card {
+            background: #FDFCFA;
+            border: 2px solid #E8E5E0;
+            border-radius: 14px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .style-card:hover {
+            transform: translateY(-3px);
+            border-color: #9AA8B0;
+            box-shadow: 0 6px 16px rgba(154, 168, 176, 0.18);
+        }
+
+        .style-card.selected {
+            border-color: #9AA8B0;
+            background: #FDFCFA;
+            box-shadow: 0 6px 18px rgba(122, 138, 146, 0.28);
+        }
+
+        .style-card.selected::before {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #9AA8B0, #7A8A92);
+            color: #FDFCFA;
+            font-size: 13px;
+            line-height: 22px;
+            font-weight: 700;
+        }
+
+        .style-preview {
+            width: 100%;
+            height: 76px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .style-preview::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(253, 252, 250, 0.18), rgba(74, 69, 64, 0.1));
+        }
+
+        .style-preview.casual-preview  { background: linear-gradient(135deg, #A8B8AA, #9AA8B0); }
+        .style-preview.elegant-preview { background: linear-gradient(135deg, #B8A89A, #9AA8B0); }
+        .style-preview.sporty-preview  { background: linear-gradient(135deg, #9AA8B0, #B8A89A); }
+        .style-preview.business-preview{ background: linear-gradient(135deg, #8A847E, #9AA8B0); }
+        .style-preview.street-preview  { background: linear-gradient(135deg, #6B6560, #9AA8B0); }
+        .style-preview.sweet-preview   { background: linear-gradient(135deg, #C97676, #B8A89A); }
+
+        .style-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #4A4540;
+        }
+
+        /* 场景标签 */
+        .scene-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 12px;
+        }
+
+        .scene-tag {
+            background: #FDFCFA;
+            border: 2px solid #E8E5E0;
+            border-radius: 22px;
+            padding: 12px 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4A4540;
+            user-select: none;
+        }
+
+        .scene-tag:hover {
+            transform: translateY(-2px);
+            border-color: #9AA8B0;
+            box-shadow: 0 4px 10px rgba(154, 168, 176, 0.15);
+        }
+
+        .scene-tag.selected {
+            border-color: #9AA8B0;
+            background: linear-gradient(135deg, #9AA8B0 0%, #7A8A92 100%);
+            color: #FDFCFA;
+            box-shadow: 0 4px 12px rgba(122, 138, 146, 0.3);
+        }
+
+        /* 保存按钮 */
+        .save-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #9AA8B0 0%, #7A8A92 100%);
+            border: none;
+            border-radius: 12px;
+            color: #FDFCFA;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 12px rgba(122, 138, 146, 0.25);
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(122, 138, 146, 0.35);
+        }
+
+        .save-btn:active {
+            transform: translateY(0);
+        }
+    </style>
+
+    <div class="preferences-container">
+        <div class="preferences-header">
+            <h1>✨ 个人偏好设置</h1>
+            <p>选择你的穿搭偏好，为你推荐更合适的穿搭</p>
+        </div>
+
+        <div class="preferences-section">
+            <div class="section-title">
+                <span class="icon">👤</span>
+                选择你的性别
+            </div>
+            <div class="gender-options">
+                <div class="gender-option" data-gender="male" onclick="selectGender('male')">
+                    <div class="gender-icon">👨</div>
+                    <div class="gender-label">小哥哥</div>
+                </div>
+                <div class="gender-option" data-gender="female" onclick="selectGender('female')">
+                    <div class="gender-icon">👩</div>
+                    <div class="gender-label">小姐姐</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preferences-section">
+            <div class="section-title">
+                <span class="icon">👗</span>
+                选择你的穿搭风格（可多选）
+            </div>
+            <div class="style-grid" id="styleGrid">
+                <div class="style-card" data-style="casual" onclick="toggleStyle('casual')">
+                    <div class="style-preview casual-preview"></div>
+                    <div class="style-name">休闲日常</div>
+                </div>
+                <div class="style-card" data-style="elegant" onclick="toggleStyle('elegant')">
+                    <div class="style-preview elegant-preview"></div>
+                    <div class="style-name">优雅气质</div>
+                </div>
+                <div class="style-card" data-style="sporty" onclick="toggleStyle('sporty')">
+                    <div class="style-preview sporty-preview"></div>
+                    <div class="style-name">运动活力</div>
+                </div>
+                <div class="style-card" data-style="business" onclick="toggleStyle('business')">
+                    <div class="style-preview business-preview"></div>
+                    <div class="style-name">商务通勤</div>
+                </div>
+                <div class="style-card" data-style="street" onclick="toggleStyle('street')">
+                    <div class="style-preview street-preview"></div>
+                    <div class="style-name">街头潮流</div>
+                </div>
+                <div class="style-card" data-style="sweet" onclick="toggleStyle('sweet')">
+                    <div class="style-preview sweet-preview"></div>
+                    <div class="style-name">甜美可爱</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preferences-section">
+            <div class="section-title">
+                <span class="icon">🎉</span>
+                选择常出席的场景（可多选）
+            </div>
+            <div class="scene-options" id="sceneOptions">
+                <div class="scene-tag" data-scene="日常" onclick="toggleScene('日常')">日常</div>
+                <div class="scene-tag" data-scene="约会" onclick="toggleScene('约会')">约会</div>
+                <div class="scene-tag" data-scene="职场" onclick="toggleScene('职场')">职场</div>
+                <div class="scene-tag" data-scene="聚会" onclick="toggleScene('聚会')">聚会</div>
+                <div class="scene-tag" data-scene="运动" onclick="toggleScene('运动')">运动</div>
+                <div class="scene-tag" data-scene="旅行" onclick="toggleScene('旅行')">旅行</div>
+                <div class="scene-tag" data-scene="上学" onclick="toggleScene('上学')">上学</div>
+                <div class="scene-tag" data-scene="正式" onclick="toggleScene('正式')">正式场合</div>
+            </div>
+        </div>
+
+        <button class="save-btn" onclick="savePreferences()">
+            💾 保存偏好设置
+        </button>
+    </div>
+</div>
+
+<script>
+    let selectedGender = '';
+    let selectedStyles = [];
+    let selectedScenes = [];
+
+    function loadPreferences() {
+        const saved = localStorage.getItem('userPreferences');
+        if (saved) {
+            const prefs = JSON.parse(saved);
+            selectedGender = prefs.gender || '';
+            selectedStyles = prefs.styles || [];
+            selectedScenes = prefs.scenes || [];
+            updateUI();
+        }
+    }
+
+    function updateUI() {
+        if (selectedGender) {
+            document.querySelectorAll('.gender-option').forEach(el => {
+                el.classList.toggle('selected', el.dataset.gender === selectedGender);
+            });
+        }
+
+        document.querySelectorAll('.style-card').forEach(el => {
+            el.classList.toggle('selected', selectedStyles.includes(el.dataset.style));
+        });
+
+        document.querySelectorAll('.scene-tag').forEach(el => {
+            el.classList.toggle('selected', selectedScenes.includes(el.dataset.scene));
+        });
+    }
+
+    function selectGender(gender) {
+        selectedGender = gender;
+        updateUI();
+    }
+
+    function toggleStyle(style) {
+        const index = selectedStyles.indexOf(style);
+        if (index > -1) {
+            selectedStyles.splice(index, 1);
+        } else {
+            selectedStyles.push(style);
+        }
+        updateUI();
+    }
+
+    function toggleScene(scene) {
+        const index = selectedScenes.indexOf(scene);
+        if (index > -1) {
+            selectedScenes.splice(index, 1);
+        } else {
+            selectedScenes.push(scene);
+        }
+        updateUI();
+    }
+
+    function savePreferences() {
+        if (!selectedGender) {
+            alert('请选择你的性别');
+            return;
+        }
+        if (selectedStyles.length === 0) {
+            alert('请至少选择一种穿搭风格');
+            return;
+        }
+
+        const prefs = {
+            gender: selectedGender,
+            styles: selectedStyles,
+            scenes: selectedScenes
+        };
+
+        localStorage.setItem('userPreferences', JSON.stringify(prefs));
+
+        alert('✨ 偏好设置保存成功！首页会根据你的偏好推荐穿搭');
+        location.href = '/';
+    }
+
+    loadPreferences();
+</script>
+{% endblock %}
