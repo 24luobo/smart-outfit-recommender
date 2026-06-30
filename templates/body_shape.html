@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}身材信息 - 智能穿搭推荐系统{% endblock %}
+
+{% block content %}
+<div class="body-shape-section">
+    <div class="container">
+        <div class="page-header">
+            <h1>身材信息</h1>
+            <p>完善你的身材数据，获得更精准的穿搭推荐</p>
+        </div>
+
+        <div class="body-shape-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>身材数据录入</h2>
+                </div>
+                <div class="card-body">
+                    <form id="bodyShapeForm">
+                        <div class="form-group">
+                            <label for="height">身高 (cm)</label>
+                            <input type="number" id="height" name="height" placeholder="请输入身高" min="100" max="250" step="0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="weight">体重 (kg)</label>
+                            <input type="number" id="weight" name="weight" placeholder="请输入体重" min="30" max="200" step="0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="shoulder">肩宽 (cm)</label>
+                            <input type="number" id="shoulder" name="shoulder" placeholder="请输入肩宽" min="30" max="60" step="0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="waist">腰围 (cm)</label>
+                            <input type="number" id="waist" name="waist" placeholder="请输入腰围" min="50" max="120" step="0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="hip">臀围 (cm)</label>
+                            <input type="number" id="hip" name="hip" placeholder="请输入臀围" min="70" max="140" step="0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="leg">腿长 (cm)</label>
+                            <input type="number" id="leg" name="leg" placeholder="请输入腿长" min="60" max="120" step="0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="skin_tone">冷暖肤色</label>
+                            <select id="skin_tone" name="skin_tone">
+                                <option value="">请选择肤色类型</option>
+                                <option value="cool">冷色调</option>
+                                <option value="warm">暖色调</option>
+                                <option value="neutral">中性色调</option>
+                            </select>
+                        </div>
+
+                        <div class="detected-body-shape" id="detectedBodyShape">
+                            <div class="body-shape-badge" id="bodyShapeBadge">
+                                <span class="shape-icon">📏</span>
+                                <span class="shape-name" id="detectedShapeName">等待输入数据</span>
+                            </div>
+                            <p class="shape-hint" id="shapeHint">请先录入身材数据或选择身材类型</p>
+                        </div>
+
+                        <div class="form-buttons">
+                            <button type="button" class="btn btn-secondary" onclick="resetBodyShapeForm()">重置</button>
+                            <button type="submit" class="btn btn-primary">保存身材信息</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>身材类型快捷选择</h2>
+                    <p class="card-subtitle">一键选择，自动填充标准身形数据</p>
+                </div>
+                <div class="card-body">
+                    <div class="body-types-grid">
+                        <div class="body-type-card" data-type="pear" onclick="selectBodyType('pear')">
+                            <div class="body-type-icon">🍐</div>
+                            <h3>梨形身材</h3>
+                            <p>肩窄臀宽，下半身丰满</p>
+                        </div>
+
+                        <div class="body-type-card" data-type="apple" onclick="selectBodyType('apple')">
+                            <div class="body-type-icon">🍎</div>
+                            <h3>苹果身材</h3>
+                            <p>腰腹丰满，上半身圆润</p>
+                        </div>
+
+                        <div class="body-type-card" data-type="hourglass" onclick="selectBodyType('hourglass')">
+                            <div class="body-type-icon">⏳</div>
+                            <h3>沙漏身材</h3>
+                            <p>肩臀同宽，腰细曲线明显</p>
+                        </div>
+
+                        <div class="body-type-card" data-type="rectangle" onclick="selectBodyType('rectangle')">
+                            <div class="body-type-icon">⬜</div>
+                            <h3>矩形身材</h3>
+                            <p>肩臀腰同宽，直线型身材</p>
+                        </div>
+
+                        <div class="body-type-card" data-type="inverted-triangle" onclick="selectBodyType('inverted-triangle')">
+                            <div class="body-type-icon">🔻</div>
+                            <h3>倒三角身材</h3>
+                            <p>肩宽臀窄，上半身结实</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const bodyTypeStandards = {
+    'pear': {
+        height: 165,
+        weight: 58,
+        shoulder: 38,
+        waist: 68,
+        hip: 96,
+        leg: 90,
+        name: '梨形身材'
+    },
+    'apple': {
+        height: 162,
+        weight: 62,
+        shoulder: 40,
+        waist: 82,
+        hip: 90,
+        leg: 85,
+        name: '苹果身材'
+    },
+    'hourglass': {
+        height: 168,
+        weight: 55,
+        shoulder: 39,
+        waist: 65,
+        hip: 92,
+        leg: 95,
+        name: '沙漏身材'
+    },
+    'rectangle': {
+        height: 165,
+        weight: 56,
+        shoulder: 38,
+        waist: 72,
+        hip: 88,
+        leg: 88,
+        name: '矩形身材'
+    },
+    'inverted-triangle': {
+        height: 170,
+        weight: 60,
+        shoulder: 44,
+        waist: 70,
+        hip: 86,
+        leg: 92,
+        name: '倒三角身材'
+    }
+};
+
+function detectBodyType(data) {
+    if (!data.height || !data.weight || !data.shoulder || !data.waist || !data.hip) {
+        return null;
+    }
+
+    const shoulderHipRatio = data.shoulder / data.hip;
+    const waistHipRatio = data.waist / data.hip;
+    const shoulderWaistDiff = data.shoulder - data.waist;
+    const hipWaistDiff = data.hip - data.waist;
+
+    if (hipWaistDiff > 10 && shoulderHipRatio < 0.95) {
+        return 'pear';
+    } else if (waistHipRatio > 0.9 && hipWaistDiff < 5) {
+        return 'apple';
+    } else if (shoulderHipRatio > 0.95 && shoulderHipRatio < 1.05 && hipWaistDiff > 8) {
+        return 'hourglass';
+    } else if (shoulderHipRatio > 0.95 && shoulderHipRatio < 1.05 && hipWaistDiff < 8) {
+        return 'rectangle';
+    } else if (shoulderHipRatio > 1.05) {
+        return 'inverted-triangle';
+    }
+
+    return 'rectangle';
+}
+
+function updateDetectedBodyShape(type) {
+    const badge = document.getElementById('bodyShapeBadge');
+    const shapeName = document.getElementById('detectedShapeName');
+    const hint = document.getElementById('shapeHint');
+
+    if (type) {
+        const typeInfo = bodyTypeStandards[type];
+        badge.classList.add('detected');
+        shapeName.textContent = typeInfo.name;
+        hint.textContent = '检测到身材类型，可继续微调数据';
+    } else {
+        badge.classList.remove('detected');
+        shapeName.textContent = '等待输入数据';
+        hint.textContent = '请先录入身材数据或选择身材类型';
+    }
+}
+
+function selectBodyType(type) {
+    const data = bodyTypeStandards[type];
+    
+    document.getElementById('height').value = data.height;
+    document.getElementById('weight').value = data.weight;
+    document.getElementById('shoulder').value = data.shoulder;
+    document.getElementById('waist').value = data.waist;
+    document.getElementById('hip').value = data.hip;
+    document.getElementById('leg').value = data.leg;
+
+    document.querySelectorAll('.body-type-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    document.querySelector(`[data-type="${type}"]`).classList.add('selected');
+
+    updateDetectedBodyShape(type);
+}
+
+function resetBodyShapeForm() {
+    document.getElementById('bodyShapeForm').reset();
+    document.querySelectorAll('.body-type-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    updateDetectedBodyShape(null);
+}
+
+document.querySelectorAll('#bodyShapeForm input[type="number"]').forEach(input => {
+    input.addEventListener('input', function() {
+        const data = {
+            height: parseFloat(document.getElementById('height').value),
+            weight: parseFloat(document.getElementById('weight').value),
+            shoulder: parseFloat(document.getElementById('shoulder').value),
+            waist: parseFloat(document.getElementById('waist').value),
+            hip: parseFloat(document.getElementById('hip').value),
+            leg: parseFloat(document.getElementById('leg').value)
+        };
+
+        const detectedType = detectBodyType(data);
+        if (detectedType) {
+            document.querySelectorAll('.body-type-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            const detectedCard = document.querySelector(`[data-type="${detectedType}"]`);
+            if (detectedCard) {
+                detectedCard.classList.add('selected');
+            }
+        }
+        updateDetectedBodyShape(detectedType);
+    });
+});
+
+document.getElementById('bodyShapeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    
+    const selectedTypeCard = document.querySelector('.body-type-card.selected');
+    data.body_type = selectedTypeCard ? selectedTypeCard.dataset.type : detectBodyType({
+        height: parseFloat(data.height),
+        weight: parseFloat(data.weight),
+        shoulder: parseFloat(data.shoulder),
+        waist: parseFloat(data.waist),
+        hip: parseFloat(data.hip),
+        leg: parseFloat(data.leg)
+    });
+
+    // 同时保存到localStorage（与账号绑定）
+    const bodyShapeData = {
+        height: parseFloat(data.height) || null,
+        weight: parseFloat(data.weight) || null,
+        shoulder_width: parseFloat(data.shoulder) || null,
+        waist: parseFloat(data.waist) || null,
+        hips: parseFloat(data.hip) || null,
+        leg_length: parseFloat(data.leg) || null,
+        skin_tone_type: data.skin_tone || null,
+        body_type: data.body_type || null
+    };
+    saveBodyShapeData(bodyShapeData);
+
+    fetch('/api/body-shape', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('身材信息保存成功！正在跳转到推荐页面...');
+            setTimeout(() => {
+                window.location.href = '/recommendation';
+            }, 1000);
+        }
+    })
+    .catch(error => {
+        console.error('保存失败:', error);
+        alert('保存失败，请重试');
+    });
+});
+
+window.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/body-shape')
+        .then(response => response.json())
+        .then(data => {
+            if (data) {
+                document.getElementById('height').value = data.height || '';
+                document.getElementById('weight').value = data.weight || '';
+                document.getElementById('shoulder').value = data.shoulder || '';
+                document.getElementById('waist').value = data.waist || '';
+                document.getElementById('hip').value = data.hip || '';
+                document.getElementById('leg').value = data.leg || '';
+                document.getElementById('skin_tone').value = data.skin_tone || '';
+                
+                if (data.body_type) {
+                    const typeCard = document.querySelector(`[data-type="${data.body_type}"]`);
+                    if (typeCard) {
+                        typeCard.classList.add('selected');
+                        updateDetectedBodyShape(data.body_type);
+                    }
+                }
+            }
+        })
+        .catch(error => console.error('加载失败:', error));
+});
+</script>
+{% endblock %}
