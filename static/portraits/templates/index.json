@@ -1,0 +1,1097 @@
+{
+  "version": 6,
+  "description": "角色模型库 v6 - 64 个模板（cm_新图优先 + p_原图补充）",
+  "templates": [
+    {
+      "id": "cm_cm_female_slim_fair_long_straight_black",
+      "file": "cm_female_slim_fair_long_straight_black.png",
+      "gender": "female",
+      "bodyType": "slim",
+      "height": 165,
+      "skin": "fair",
+      "hairStyle": "long_straight",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "纤瘦",
+        "白皙",
+        "长直发",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_athletic_fair_long_straight_black",
+      "file": "cm_male_athletic_fair_long_straight_black.png",
+      "gender": "male",
+      "bodyType": "athletic",
+      "height": 180,
+      "skin": "fair",
+      "hairStyle": "long_straight",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "健美",
+        "白皙",
+        "长直发",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_athletic_fair_long_straight_blonde",
+      "file": "cm_male_athletic_fair_long_straight_blonde.png",
+      "gender": "male",
+      "bodyType": "athletic",
+      "height": 180,
+      "skin": "fair",
+      "hairStyle": "long_straight",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "健美",
+        "白皙",
+        "长直发",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_athletic_fair_long_straight_brown",
+      "file": "cm_male_athletic_fair_long_straight_brown.png",
+      "gender": "male",
+      "bodyType": "athletic",
+      "height": 180,
+      "skin": "fair",
+      "hairStyle": "long_straight",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "健美",
+        "白皙",
+        "长直发",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_athletic_fair_long_wavy_black",
+      "file": "cm_male_athletic_fair_long_wavy_black.png",
+      "gender": "male",
+      "bodyType": "athletic",
+      "height": 180,
+      "skin": "fair",
+      "hairStyle": "long_wavy",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "健美",
+        "白皙",
+        "长卷发",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_crew_cut_black",
+      "file": "cm_male_slim_fair_crew_cut_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "crew_cut",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "寸头",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_crew_cut_blonde",
+      "file": "cm_male_slim_fair_crew_cut_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "crew_cut",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "寸头",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_crew_cut_brown",
+      "file": "cm_male_slim_fair_crew_cut_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "crew_cut",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "寸头",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_long_straight_black",
+      "file": "cm_male_slim_fair_long_straight_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "long_straight",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "长直发",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_long_straight_blonde",
+      "file": "cm_male_slim_fair_long_straight_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "long_straight",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "长直发",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_long_straight_brown",
+      "file": "cm_male_slim_fair_long_straight_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "long_straight",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "长直发",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_long_wavy_black",
+      "file": "cm_male_slim_fair_long_wavy_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "long_wavy",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "长卷发",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_long_wavy_blonde",
+      "file": "cm_male_slim_fair_long_wavy_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "long_wavy",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "长卷发",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_long_wavy_brown",
+      "file": "cm_male_slim_fair_long_wavy_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "long_wavy",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "长卷发",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_ponytail_black",
+      "file": "cm_male_slim_fair_ponytail_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "ponytail",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "马尾",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_ponytail_blonde",
+      "file": "cm_male_slim_fair_ponytail_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "ponytail",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "马尾",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_ponytail_brown",
+      "file": "cm_male_slim_fair_ponytail_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "ponytail",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "马尾",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_short_black",
+      "file": "cm_male_slim_fair_short_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "short",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "短发",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_short_blonde",
+      "file": "cm_male_slim_fair_short_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "short",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "短发",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_short_brown",
+      "file": "cm_male_slim_fair_short_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "short",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "短发",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_side_part_black",
+      "file": "cm_male_slim_fair_side_part_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "side_part",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "偏分",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_side_part_blonde",
+      "file": "cm_male_slim_fair_side_part_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "side_part",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "偏分",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_fair_side_part_brown",
+      "file": "cm_male_slim_fair_side_part_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "fair",
+      "hairStyle": "side_part",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "白皙",
+        "偏分",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_crew_cut_black",
+      "file": "cm_male_slim_medium_crew_cut_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "crew_cut",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "寸头",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_crew_cut_blonde",
+      "file": "cm_male_slim_medium_crew_cut_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "crew_cut",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "寸头",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_crew_cut_brown",
+      "file": "cm_male_slim_medium_crew_cut_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "crew_cut",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "寸头",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_long_straight_black",
+      "file": "cm_male_slim_medium_long_straight_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "long_straight",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "长直发",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_long_straight_blonde",
+      "file": "cm_male_slim_medium_long_straight_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "long_straight",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "长直发",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_long_straight_brown",
+      "file": "cm_male_slim_medium_long_straight_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "long_straight",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "长直发",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_long_wavy_black",
+      "file": "cm_male_slim_medium_long_wavy_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "long_wavy",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "长卷发",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_long_wavy_blonde",
+      "file": "cm_male_slim_medium_long_wavy_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "long_wavy",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "长卷发",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_long_wavy_brown",
+      "file": "cm_male_slim_medium_long_wavy_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "long_wavy",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "长卷发",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_ponytail_black",
+      "file": "cm_male_slim_medium_ponytail_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "ponytail",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "马尾",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_ponytail_blonde",
+      "file": "cm_male_slim_medium_ponytail_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "ponytail",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "马尾",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_ponytail_brown",
+      "file": "cm_male_slim_medium_ponytail_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "ponytail",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "马尾",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_short_black",
+      "file": "cm_male_slim_medium_short_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "short",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "短发",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_short_blonde",
+      "file": "cm_male_slim_medium_short_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "short",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "短发",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_short_brown",
+      "file": "cm_male_slim_medium_short_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "short",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "短发",
+        "棕色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_side_part_black",
+      "file": "cm_male_slim_medium_side_part_black.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "side_part",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "偏分",
+        "黑色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_side_part_blonde",
+      "file": "cm_male_slim_medium_side_part_blonde.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "side_part",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "偏分",
+        "金色"
+      ]
+    },
+    {
+      "id": "cm_cm_male_slim_medium_side_part_brown",
+      "file": "cm_male_slim_medium_side_part_brown.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "medium",
+      "hairStyle": "side_part",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "纤瘦",
+        "自然",
+        "偏分",
+        "棕色"
+      ]
+    },
+    {
+      "id": "f_curvy_fair_lw_brown",
+      "file": "p_02_A_high_quality_full_.png",
+      "gender": "female",
+      "bodyType": "curvy",
+      "height": 162,
+      "skin": "fair",
+      "hairStyle": "long_wavy",
+      "hairColor": "brown",
+      "tags": [
+        "女",
+        "丰满",
+        "白皙",
+        "长卷",
+        "棕色"
+      ]
+    },
+    {
+      "id": "f_athletic_med_pony_black",
+      "file": "p_03_A_high_quality_full_.png",
+      "gender": "female",
+      "bodyType": "athletic",
+      "height": 168,
+      "skin": "medium",
+      "hairStyle": "ponytail",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "健美",
+        "自然",
+        "马尾",
+        "黑色"
+      ]
+    },
+    {
+      "id": "m_athletic_med_parted_black",
+      "file": "p_05_A_high_quality_full_.png",
+      "gender": "male",
+      "bodyType": "athletic",
+      "height": 180,
+      "skin": "medium",
+      "hairStyle": "side_part",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "健美",
+        "自然",
+        "偏分",
+        "黑色"
+      ]
+    },
+    {
+      "id": "m_muscular_fair_crew_black",
+      "file": "p_06_A_high_quality_full_.png",
+      "gender": "male",
+      "bodyType": "muscular",
+      "height": 178,
+      "skin": "fair",
+      "hairStyle": "crew_cut",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "肌肉",
+        "白皙",
+        "寸头",
+        "黑色"
+      ]
+    },
+    {
+      "id": "m_athletic_fair_crew_black",
+      "file": "p_07_m_athletic_crew.png",
+      "gender": "male",
+      "bodyType": "athletic",
+      "height": 180,
+      "skin": "fair",
+      "hairStyle": "crew_cut",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "健美",
+        "白皙",
+        "寸头",
+        "黑色"
+      ]
+    },
+    {
+      "id": "m_muscular_fair_short_blonde",
+      "file": "p_11_m_muscular_blonde.png",
+      "gender": "male",
+      "bodyType": "muscular",
+      "height": 178,
+      "skin": "fair",
+      "hairStyle": "short",
+      "hairColor": "blonde",
+      "tags": [
+        "男",
+        "肌肉",
+        "白皙",
+        "短发",
+        "金色"
+      ]
+    },
+    {
+      "id": "f_slim_fair_short_black",
+      "file": "p_13_f_slim_bob.png",
+      "gender": "female",
+      "bodyType": "slim",
+      "height": 165,
+      "skin": "fair",
+      "hairStyle": "short",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "纤瘦",
+        "白皙",
+        "短发波波头",
+        "黑色"
+      ]
+    },
+    {
+      "id": "f_slim_fair_lw_brown",
+      "file": "p_16_f_slim_wavy_brown.png",
+      "gender": "female",
+      "bodyType": "slim",
+      "height": 165,
+      "skin": "fair",
+      "hairStyle": "long_wavy",
+      "hairColor": "brown",
+      "tags": [
+        "女",
+        "纤瘦",
+        "白皙",
+        "长卷",
+        "棕色"
+      ]
+    },
+    {
+      "id": "f_curvy_fair_ls_blonde",
+      "file": "p_17_f_curvy_blonde.png",
+      "gender": "female",
+      "bodyType": "curvy",
+      "height": 162,
+      "skin": "fair",
+      "hairStyle": "long_straight",
+      "hairColor": "blonde",
+      "tags": [
+        "女",
+        "丰满",
+        "白皙",
+        "长直",
+        "金色"
+      ]
+    },
+    {
+      "id": "f_slim_dark_ls_black",
+      "file": "p_18_f_slim_dark.png",
+      "gender": "female",
+      "bodyType": "slim",
+      "height": 165,
+      "skin": "dark",
+      "hairStyle": "long_straight",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "纤瘦",
+        "小麦",
+        "长直",
+        "黑色"
+      ]
+    },
+    {
+      "id": "f_curvy_med_ls_black",
+      "file": "p_19_f_curvy_medium.png",
+      "gender": "female",
+      "bodyType": "curvy",
+      "height": 162,
+      "skin": "medium",
+      "hairStyle": "long_straight",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "丰满",
+        "自然",
+        "长直",
+        "黑色"
+      ]
+    },
+    {
+      "id": "f_curvy_dark_ls_black",
+      "file": "p_20_f_curvy_dark.png",
+      "gender": "female",
+      "bodyType": "curvy",
+      "height": 162,
+      "skin": "dark",
+      "hairStyle": "long_straight",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "丰满",
+        "小麦",
+        "长直",
+        "黑色"
+      ]
+    },
+    {
+      "id": "f_athletic_med_short_black",
+      "file": "p_21_f_athletic_med_bob.png",
+      "gender": "female",
+      "bodyType": "athletic",
+      "height": 168,
+      "skin": "medium",
+      "hairStyle": "short",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "健美",
+        "自然",
+        "短发波波头",
+        "黑色"
+      ]
+    },
+    {
+      "id": "f_athletic_fair_ls_black",
+      "file": "p_22_f_athletic_fair_ls.png",
+      "gender": "female",
+      "bodyType": "athletic",
+      "height": 168,
+      "skin": "fair",
+      "hairStyle": "long_straight",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "健美",
+        "白皙",
+        "长直",
+        "黑色",
+        "高个"
+      ]
+    },
+    {
+      "id": "f_slim_fair_crew_black",
+      "file": "p_23_f_slim_crew.png",
+      "gender": "female",
+      "bodyType": "slim",
+      "height": 165,
+      "skin": "fair",
+      "hairStyle": "crew_cut",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "纤瘦",
+        "白皙",
+        "寸头超短发",
+        "黑色"
+      ]
+    },
+    {
+      "id": "m_slim_dark_short_black",
+      "file": "p_25_m_slim_dark.png",
+      "gender": "male",
+      "bodyType": "slim",
+      "height": 175,
+      "skin": "dark",
+      "hairStyle": "short",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "纤瘦",
+        "小麦",
+        "短发",
+        "黑色"
+      ]
+    },
+    {
+      "id": "f_athletic_dark_pony_black",
+      "file": "p_26_f_athletic_dark_pony.png",
+      "gender": "female",
+      "bodyType": "athletic",
+      "height": 168,
+      "skin": "dark",
+      "hairStyle": "ponytail",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "健美",
+        "小麦",
+        "马尾",
+        "黑色"
+      ]
+    },
+    {
+      "id": "m_athletic_fair_parted_brown",
+      "file": "p_27_m_athletic_brown_parted.png",
+      "gender": "male",
+      "bodyType": "athletic",
+      "height": 180,
+      "skin": "fair",
+      "hairStyle": "side_part",
+      "hairColor": "brown",
+      "tags": [
+        "男",
+        "健美",
+        "白皙",
+        "偏分",
+        "棕色"
+      ]
+    },
+    {
+      "id": "m_muscular_dark_crew_black",
+      "file": "p_28_m_muscular_dark_crew.png",
+      "gender": "male",
+      "bodyType": "muscular",
+      "height": 178,
+      "skin": "dark",
+      "hairStyle": "crew_cut",
+      "hairColor": "black",
+      "tags": [
+        "男",
+        "肌肉",
+        "小麦",
+        "寸头",
+        "黑色"
+      ]
+    },
+    {
+      "id": "f_muscular_fair_ls_black",
+      "file": "p_29_f_muscular_fair_ls.png",
+      "gender": "female",
+      "bodyType": "muscular",
+      "height": 168,
+      "skin": "fair",
+      "hairStyle": "long_straight",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "肌肉",
+        "白皙",
+        "长直",
+        "黑色",
+        "肩宽手粗"
+      ]
+    },
+    {
+      "id": "f_muscular_fair_pony_blonde",
+      "file": "p_30_f_muscular_fair_pony_blonde.png",
+      "gender": "female",
+      "bodyType": "muscular",
+      "height": 170,
+      "skin": "fair",
+      "hairStyle": "ponytail",
+      "hairColor": "blonde",
+      "tags": [
+        "女",
+        "肌肉",
+        "白皙",
+        "马尾",
+        "金色",
+        "高个"
+      ]
+    },
+    {
+      "id": "f_muscular_fair_short_black",
+      "file": "p_31_f_muscular_fair_short.png",
+      "gender": "female",
+      "bodyType": "muscular",
+      "height": 168,
+      "skin": "fair",
+      "hairStyle": "short",
+      "hairColor": "black",
+      "tags": [
+        "女",
+        "肌肉",
+        "白皙",
+        "短发波波头",
+        "黑色"
+      ]
+    },
+    {
+      "id": "f_muscular_med_lw_brown",
+      "file": "p_32_f_muscular_med_lw_brown.png",
+      "gender": "female",
+      "bodyType": "muscular",
+      "height": 168,
+      "skin": "medium",
+      "hairStyle": "long_wavy",
+      "hairColor": "brown",
+      "tags": [
+        "女",
+        "肌肉",
+        "自然",
+        "长卷",
+        "棕色"
+      ]
+    }
+  ]
+}
