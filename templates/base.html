@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}智能穿搭推荐系统{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/auth.css">
+    <link rel="stylesheet" href="/static/css/tryon.css">
+    <style>
+        /* 快看漫画风格顶部导航 */
+        .kk-top-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            z-index: 1000;
+            padding: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .kk-top-nav-tabs {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 50px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .kk-top-nav-tab {
+            padding: 12px 8px;
+            font-size: 15px;
+            color: #666;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+            font-weight: 500;
+        }
+        .kk-top-nav-tab.active {
+            color: #FFD700;
+            font-weight: 600;
+        }
+        .kk-top-nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 3px;
+            background: #FFD700;
+            border-radius: 2px;
+        }
+        .kk-top-nav-search {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        /* 快看漫画风格底部导航Tab */
+        .kk-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            z-index: 1000;
+            padding: 8px 0;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+            padding-bottom: env(safe-area-inset-bottom, 8px);
+        }
+        .kk-bottom-nav-tabs {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .kk-bottom-nav-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 4px 12px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.2s;
+        }
+        .kk-bottom-nav-tab.active {
+            color: #FFD700;
+        }
+        .kk-bottom-nav-tab .kk-tab-icon {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+        .kk-bottom-nav-tab.kk-tab-center {
+            transform: translateY(-8px);
+        }
+        .kk-bottom-nav-tab.kk-tab-center .kk-tab-icon {
+            font-size: 48px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 50%;
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+        }
+        .kk-bottom-nav-tab .kk-tab-label {
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        /* 主内容区域调整 */
+        .main-content {
+            padding-top: 50px;
+            padding-bottom: 70px;
+            min-height: 100vh;
+        }
+        
+        /* 游客提示条 */
+        .guest-banner {
+            background: linear-gradient(135deg, #9AA8B0, #B8A89A);
+            padding: 10px 20px;
+            color: white;
+            display: none;
+        }
+        .guest-banner-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 16px;
+        }
+        .guest-banner-content span {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .guest-banner-btn {
+            background: white;
+            color: #9AA8B0;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- 快看漫画风格顶部导航 -->
+    <nav class="kk-top-nav">
+        <div class="kk-top-nav-tabs">
+            <div class="kk-top-nav-tab" data-page="/" onclick="window.location.href='/'">推荐</div>
+            <div class="kk-top-nav-tab" data-page="/clothing" onclick="window.location.href='/clothing'">服饰库</div>
+            <div class="kk-top-nav-tab" data-page="/my-clothes" onclick="window.location.href='/my-clothes'">个人衣服</div>
+            <div class="kk-top-nav-tab" data-page="/tryon" onclick="window.location.href='/tryon'">在线试衣</div>
+        </div>
+        <div class="kk-top-nav-search" onclick="alert('搜索功能开发中...')">🔍</div>
+    </nav>
+    
+    <!-- 游客提示条 -->
+    <div id="guest-banner" class="guest-banner">
+        <div class="guest-banner-content">
+            <span>💡 游客模式：身材数据仅临时保存，登录账号可永久保存</span>
+            <button onclick="showLoginModal()" class="guest-banner-btn">登录账号</button>
+        </div>
+    </div>
+
+    <!-- 登录/注册弹窗遮罩 -->
+    <div id="auth-modal" class="auth-modal" style="display: none;">
+        <div class="auth-modal-content">
+            <span class="auth-modal-close" onclick="closeAuthModal()">&times;</span>
+            
+            <!-- 登录表单 -->
+            <div id="login-form" class="auth-form">
+                <h2 class="auth-title">登录账号</h2>
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="login-username" class="form-input" placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="login-password" class="form-input" placeholder="请输入密码">
+                </div>
+                <button onclick="loginUser()" class="btn btn-primary btn-block">登录</button>
+                <div class="auth-divider">
+                    <span>或</span>
+                </div>
+                <button onclick="continueAsGuest()" class="btn btn-secondary btn-block">游客模式，跳过登录</button>
+                <p class="auth-switch">
+                    没有账号？<a href="javascript:void(0)" onclick="showRegisterModal()">立即注册</a>
+                </p>
+            </div>
+            
+            <!-- 注册表单 -->
+            <div id="register-form" class="auth-form" style="display: none;">
+                <h2 class="auth-title">注册新账号</h2>
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="register-username" class="form-input" placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="register-password" class="form-input" placeholder="请输入密码">
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <input type="password" id="register-confirm-password" class="form-input" placeholder="请再次输入密码">
+                </div>
+                
+                <!-- 基本信息 -->
+                <div class="form-section-title">基本信息</div>
+                
+                <div class="form-group">
+                    <label>肤色</label>
+                    <select id="register-skin-tone" class="form-input">
+                        <option value="">请选择肤色</option>
+                        <option value="fair">冷白皮</option>
+                        <option value="medium">暖黄皮</option>
+                        <option value="dark">小麦色</option>
+                        <option value="deep">深肤色</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>穿搭偏好</label>
+                    <select id="register-style" class="form-input">
+                        <option value="">请选择穿搭偏好</option>
+                        <option value="casual">休闲风格</option>
+                        <option value="formal">商务风格</option>
+                        <option value="sporty">运动风格</option>
+                        <option value="elegant">优雅风格</option>
+                        <option value="trendy">潮流风格</option>
+                        <option value="minimal">极简风格</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>常出席场景</label>
+                    <select id="register-scene" class="form-input">
+                        <option value="">请选择常出席场景</option>
+                        <option value="work">职场办公</option>
+                        <option value="casual">日常休闲</option>
+                        <option value="dating">约会聚餐</option>
+                        <option value="party">派对活动</option>
+                        <option value="travel">旅行度假</option>
+                        <option value="sport">运动健身</option>
+                    </select>
+                </div>
+                
+                <button onclick="registerUser()" class="btn btn-primary btn-block">注册</button>
+                <div class="auth-divider">
+                    <span>或</span>
+                </div>
+                <button onclick="continueAsGuest()" class="btn btn-secondary btn-block">游客模式，跳过注册</button>
+                <p class="auth-switch">
+                    已有账号？<a href="javascript:void(0)" onclick="showLoginModal()">立即登录</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- 快看漫画风格底部导航Tab -->
+    <nav class="kk-bottom-nav">
+        <div class="kk-bottom-nav-tabs">
+            <div class="kk-bottom-nav-tab" data-page="/" onclick="window.location.href='/'">
+                <span class="kk-tab-icon">🏠</span>
+                <span class="kk-tab-label">首页</span>
+            </div>
+            <div class="kk-bottom-nav-tab kk-tab-center" data-page="/ai-assistant" onclick="location.href='/ai-assistant'">
+                <span class="kk-tab-icon">✨</span>
+            </div>
+            <div class="kk-bottom-nav-tab" data-page="/profile" onclick="window.location.href='/profile'">
+                <span class="kk-tab-icon">👤</span>
+                <span class="kk-tab-label">我的</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 新用户引导页 -->
+    <div id="onboarding-modal" class="onboarding-modal hidden">
+        <div class="onboarding-overlay" onclick="skipOnboarding()"></div>
+        <div class="onboarding-container">
+            <button class="onboarding-skip-btn" onclick="skipOnboarding()">跳过</button>
+            
+            <!-- 第一页：性别选择 -->
+            <div id="onboarding-step-1" class="onboarding-step active">
+                <div class="onboarding-title">欢迎来到穿搭世界</div>
+                <div class="onboarding-subtitle">很想认识你，点击选择你的性别</div>
+                <div class="gender-selection">
+                    <div class="gender-option" id="gender-male" onclick="selectGender('male')">
+                        <div class="gender-icon male-icon">👦</div>
+                        <div class="gender-label">小哥哥</div>
+                    </div>
+                    <div class="gender-option" id="gender-female" onclick="selectGender('female')">
+                        <div class="gender-icon female-icon">👧</div>
+                        <div class="gender-label">小姐姐</div>
+                    </div>
+                </div>
+                <button id="gender-next-btn" class="onboarding-next-btn hidden" onclick="nextOnboardingStep()">下一步</button>
+            </div>
+
+            <!-- 第二页：穿搭风格选择 -->
+            <div id="onboarding-step-2" class="onboarding-step hidden">
+                <div class="onboarding-title">选择你的穿搭口味</div>
+                <div class="onboarding-subtitle">定制专属AI穿搭推荐</div>
+                <div class="style-grid" id="style-grid">
+                    <!-- 风格选项会动态生成 -->
+                </div>
+                <div class="style-hint">请选择 2~3 个你喜欢的风格</div>
+                <button id="style-next-btn" class="onboarding-next-btn hidden" onclick="finishOnboarding()">完成</button>
+            </div>
+
+            <!-- 第三页：完成确认 / 准备中 -->
+            <div id="onboarding-step-3" class="onboarding-step hidden">
+                <div class="onboarding-success">
+                    <div class="onboarding-success-icon">✓</div>
+                    <div class="onboarding-title">已为你准备好啦</div>
+                    <div class="onboarding-subtitle" id="onboarding-success-summary">正在为你准备专属穿搭方案...</div>
+                    <div class="onboarding-success-loading">
+                        <div class="onboarding-success-dot"></div>
+                        <div class="onboarding-success-dot"></div>
+                        <div class="onboarding-success-dot"></div>
+                    </div>
+                    <div class="onboarding-success-tags" id="onboarding-success-tags"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引导页样式 -->
+    <style>
+        .onboarding-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+        }
+        .onboarding-modal.hidden {
+            display: none;
+        }
+        .onboarding-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        .onboarding-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #FDFCFA;
+            border-radius: 30px;
+            padding: 60px 40px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+        .onboarding-skip-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: #8A847E;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .onboarding-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #4A4540;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .onboarding-subtitle {
+            font-size: 16px;
+            color: #8A847E;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .gender-selection {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .gender-option {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #F4F1ED;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+        }
+        .gender-option:hover {
+            transform: scale(1.05);
+            background: #EDEAE5;
+        }
+        .gender-option.selected {
+            border-color: #9AA8B0;
+            background: #F8F6F3;
+        }
+        .gender-option.selected#gender-male {
+            border-color: #7BA3C5;
+        }
+        .gender-option.selected#gender-female {
+            border-color: #E8A8C0;
+        }
+        .gender-icon {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+        .gender-label {
+            font-size: 14px;
+            color: #4A4540;
+            font-weight: 600;
+        }
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .style-card {
+            background: #F4F1ED;
+            border-radius: 20px;
+            padding: 20px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .style-card:hover {
+            transform: scale(1.02);
+            background: #EDEAE5;
+        }
+        .style-card.selected {
+            border-color: #9AA8B0;
+            background: #F8F6F3;
+        }
+        .style-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 12px;
+            background: linear-gradient(135deg, #9AA8B0, #B8A89A);
+        }
+        .style-preview.casual-preview { background: linear-gradient(135deg, #A8B8AA, #9AA8B0); }
+        .style-preview.elegant-preview { background: linear-gradient(135deg, #B8A89A, #9AA8B0); }
+        .style-preview.sporty-preview { background: linear-gradient(135deg, #9AA8B0, #B8A89A); }
+        .style-preview.business-preview { background: linear-gradient(135deg, #8A847E, #9AA8B0); }
+        .style-preview.street-preview { background: linear-gradient(135deg, #6B6560, #9AA8B0); }
+        .style-preview.sweet-preview { background: linear-gradient(135deg, #B8A89A, #A8B8AA); }
+        .style-label {
+            font-size: 13px;
+            color: #4A4540;
+            font-weight: 600;
+        }
+        .style-hint {
+            text-align: center;
+            color: #A8A29C;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .height-grid {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .height-card {
+            flex: 1;
+            background: #F4F1ED;
+            border-radius: 20px;
+            padding: 25px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .height-card:hover {
+            transform: scale(1.02);
+            background: #EDEAE5;
+        }
+        .height-card.selected {
+            border-color: #9AA8B0;
+            background: #F8F6F3;
+        }
+        .height-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+        .height-label {
+            font-size: 15px;
+            color: #4A4540;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .height-range {
+            font-size: 12px;
+            color: #8A847E;
+        }
+        .onboarding-next-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #9AA8B0, #B8A89A);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .onboarding-next-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(154, 168, 176, 0.3);
+        }
+        .onboarding-next-btn.hidden {
+            display: none;
+        }
+        .onboarding-step {
+            display: none;
+        }
+        .onboarding-step.active {
+            display: block;
+        }
+
+        /* 抖动反馈(FIFO 替换时被挤掉的卡片) */
+        @keyframes kk-shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+        }
+        .kk-shake { animation: kk-shake 0.4s ease-in-out; }
+
+        /* 第三步: 完成确认页 */
+        .onboarding-success {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 16px 0 8px;
+        }
+        .onboarding-success-icon {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: linear-gradient(135deg, #C97676 0%, #A85858 100%);
+            color: #fff; font-size: 38px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 16px;
+            box-shadow: 0 6px 18px rgba(201, 118, 118, 0.35);
+            animation: kk-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes kk-pop {
+            0%   { transform: scale(0.3); opacity: 0; }
+            60%  { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .onboarding-success-loading {
+            display: flex; gap: 6px; margin: 18px 0 14px;
+        }
+        .onboarding-success-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #C97676;
+            animation: kk-bounce 1.2s ease-in-out infinite;
+        }
+        .onboarding-success-dot:nth-child(2) { animation-delay: 0.15s; }
+        .onboarding-success-dot:nth-child(3) { animation-delay: 0.30s; }
+        @keyframes kk-bounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        .onboarding-success-tags {
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+            margin-top: 10px;
+        }
+        .onboarding-tag {
+            background: #F4F1ED; color: #4A4540;
+            font-size: 12px; padding: 5px 12px; border-radius: 12px;
+            font-weight: 600;
+        }
+    </style>
+
+    <!-- 引导页脚本 -->
+    <script>
+        let selectedGender = null;
+        let selectedStyles = [];
+        let currentStep = 1;
+
+        // 每次刷新/新会话都弹出引导
+        function checkFirstVisit() {
+            const modal = document.getElementById('onboarding-modal');
+            if (!modal) return;
+
+            // 检测是否刷新(reload 时强制弹,同会话内点链接不弹)
+            let navType = 'navigate';
+            try {
+                const navEntries = performance.getEntriesByType('navigation');
+                if (navEntries && navEntries.length > 0 && navEntries[0].type) {
+                    navType = navEntries[0].type;
+                } else if (performance.navigation) {
+                    navType = performance.navigation.type === 1 ? 'reload' : 'navigate';
+                }
+            } catch (e) {}
+
+            // 刷新 → 必弹(忽略之前是否弹过)
+            // 同会话内普通导航 → 跳过
+            if (navType !== 'reload' && sessionStorage.getItem('onboardingShown')) return;
+            sessionStorage.setItem('onboardingShown', '1');
+
+            // 始终从第 1 步开始
+            currentStep = 1;
+            selectedGender = null;
+            selectedStyles = [];
+
+            // 重置 UI
+            document.querySelectorAll('.onboarding-step').forEach(el => el.classList.remove('active'));
+            document.getElementById('onboarding-step-1').classList.add('active');
+            document.querySelectorAll('.gender-option').forEach(el => el.classList.remove('selected'));
+            document.querySelectorAll('.style-card').forEach(el => el.classList.remove('selected'));
+            document.getElementById('gender-next-btn').classList.add('hidden');
+            document.getElementById('style-next-btn').classList.add('hidden');
+
+            // 如果已有偏好数据，预选
+            const saved = localStorage.getItem('onboardingData');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.gender) {
+                        selectedGender = data.gender;
+                        const gEl = document.getElementById('gender-' + data.gender);
+                        if (gEl) gEl.classList.add('selected');
+                        document.getElementById('gender-next-btn').classList.remove('hidden');
+                    }
+                    if (Array.isArray(data.styles) && data.styles.length > 0) {
+                        selectedStyles = data.styles;
+                    }
+                } catch (e) { /* ignore */ }
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        // 选择性别
+        function selectGender(gender) {
+            selectedGender = gender;
+            document.querySelectorAll('.gender-option').forEach(el => el.classList.remove('selected'));
+            document.getElementById('gender-' + gender).classList.add('selected');
+            document.getElementById('gender-next-btn').classList.remove('hidden');
+        }
+
+        // 切换风格
+        function toggleStyle(style) {
+            const index = selectedStyles.indexOf(style);
+            if (index > -1) {
+                // 取消选择
+                selectedStyles.splice(index, 1);
+            } else {
+                // 最多 3 个
+                if (selectedStyles.length >= 3) {
+                    // 不再 alert,直接抖动提示一下,然后把最早选的那个挤掉(FIFO)
+                    const removed = selectedStyles.shift();
+                    // 给被挤掉的卡片去掉选中态
+                    document.querySelectorAll('.style-card').forEach(card => {
+                        if (card.getAttribute('data-style') === removed) {
+                            card.classList.remove('selected');
+                            // 抖动动画
+                            card.classList.add('kk-shake');
+                            setTimeout(() => card.classList.remove('kk-shake'), 400);
+                        }
+                    });
+                }
+                selectedStyles.push(style);
+            }
+
+            document.querySelectorAll('.style-card').forEach(card => {
+                const cardStyle = card.getAttribute('data-style');
+                if (selectedStyles.includes(cardStyle)) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+
+            updateStyleNextButton();
+        }
+
+        // 更新"完成"按钮的可见性、文本和提示语
+        function updateStyleNextButton() {
+            const btn = document.getElementById('style-next-btn');
+            const hint = document.querySelector('#onboarding-step-2 .style-hint');
+            const n = selectedStyles.length;
+            if (!btn) return;
+            if (n === 0) {
+                btn.classList.add('hidden');
+                if (hint) hint.textContent = '请选择 2~3 个你喜欢的风格';
+            } else if (n === 1) {
+                btn.classList.add('hidden');
+                if (hint) hint.textContent = '已选 1/3,再选 1~2 个';
+            } else if (n === 2) {
+                btn.classList.remove('hidden');
+                btn.textContent = '完成 (2/3)';
+                if (hint) hint.textContent = '已选 2/3,可继续选第 3 个,或点这里完成';
+            } else { // n === 3
+                btn.classList.remove('hidden');
+                btn.textContent = '完成 (3/3) ✓';
+                if (hint) hint.textContent = '已选满 3/3,点完成开启你的穿搭之旅';
+            }
+        }
+
+        // 风格配置
+        const styleConfigs = {
+            female: [
+                { id: 'casual', name: '休闲日常', previewClass: 'casual-preview' },
+                { id: 'elegant', name: '优雅气质', previewClass: 'elegant-preview' },
+                { id: 'sporty', name: '运动活力', previewClass: 'sporty-preview' },
+                { id: 'business', name: '商务通勤', previewClass: 'business-preview' },
+                { id: 'street', name: '街头潮流', previewClass: 'street-preview' },
+                { id: 'sweet', name: '甜美可爱', previewClass: 'sweet-preview' }
+            ],
+            male: [
+                { id: 'casual', name: '休闲日常', previewClass: 'casual-preview' },
+                { id: 'sporty', name: '运动活力', previewClass: 'sporty-preview' },
+                { id: 'business', name: '商务通勤', previewClass: 'business-preview' },
+                { id: 'street', name: '街头潮流', previewClass: 'street-preview' },
+                { id: 'japanese', name: '青春日系', previewClass: 'casual-preview' },
+                { id: 'korean', name: '清爽韩系', previewClass: 'elegant-preview' }
+            ]
+        };
+
+        // 渲染风格选项
+        function renderStyleOptions() {
+            const grid = document.getElementById('style-grid');
+            const config = styleConfigs[selectedGender] || styleConfigs.female;
+
+            grid.innerHTML = config.map(style => `
+                <div class="style-card" onclick="toggleStyle('${style.id}')" data-style="${style.id}">
+                    <div class="style-preview ${style.previewClass}"></div>
+                    <div class="style-label">${style.name}</div>
+                </div>
+            `).join('');
+
+            // 预选之前保存的风格
+            if (selectedStyles.length > 0) {
+                document.querySelectorAll('.style-card').forEach(card => {
+                    const s = card.getAttribute('data-style');
+                    if (selectedStyles.includes(s)) card.classList.add('selected');
+                });
+            }
+            // 用统一函数更新"完成"按钮和提示语
+            updateStyleNextButton();
+        }
+
+        // 下一步
+        function nextOnboardingStep() {
+            currentStep++;
+            document.querySelectorAll('.onboarding-step').forEach(el => el.classList.remove('active'));
+            document.getElementById('onboarding-step-' + currentStep).classList.add('active');
+
+            // 如果是第二步（风格选择），根据性别渲染风格选项
+            if (currentStep === 2) {
+                renderStyleOptions();
+            }
+        }
+
+        // 跳过引导（仅关闭弹窗，下次刷新仍会弹出）
+        function skipOnboarding() {
+            document.getElementById('onboarding-modal').classList.add('hidden');
+        }
+
+        // 完成引导：保存 → 展示第 3 步确认页 → 1.4s 后自动关闭
+        function finishOnboarding() {
+            // 1) 校验
+            if (!selectedGender || selectedStyles.length < 2) {
+                updateStyleNextButton();
+                return;
+            }
+
+            // 2) 保存到 localStorage
+            const onboardingData = {
+                gender: selectedGender,
+                styles: selectedStyles,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('onboardingData', JSON.stringify(onboardingData));
+
+            // 3) 切到第 3 步(确认页)
+            document.querySelectorAll('.onboarding-step').forEach(el => el.classList.remove('active'));
+            const step3 = document.getElementById('onboarding-step-3');
+            if (step3) {
+                // 渲染选中的风格标签
+                const tagsEl = document.getElementById('onboarding-success-tags');
+                const summaryEl = document.getElementById('onboarding-success-summary');
+                if (tagsEl) {
+                    const genderCN = selectedGender === 'male' ? '男生' : '女生';
+                    const styleNameMap = {
+                        casual: '休闲日常', elegant: '优雅气质', sporty: '运动活力',
+                        business: '商务通勤', street: '街头潮流', sweet: '甜美可爱',
+                        japanese: '青春日系', korean: '清爽韩系',
+                    };
+                    const names = selectedStyles.map(s => styleNameMap[s] || s);
+                    tagsEl.innerHTML = names.map(n => `<span class="onboarding-tag">${n}</span>`).join('');
+                    if (summaryEl) {
+                        summaryEl.textContent = `${genderCN} · 已选 ${selectedStyles.length} 种风格 · 准备中...`;
+                    }
+                }
+                currentStep = 3;
+                step3.classList.add('active');
+            }
+
+            // 4) 1.4s 后关闭弹窗, 让用户感受到"准备完成"的过渡
+            setTimeout(() => {
+                const modal = document.getElementById('onboarding-modal');
+                if (modal) modal.classList.add('hidden');
+                // 通知 index 页 / 其他监听者,让首页能立即重新渲染以反映新选择
+                try {
+                    window.dispatchEvent(new CustomEvent('onboarding-finished', {
+                        detail: onboardingData
+                    }));
+                } catch (e) { /* ignore */ }
+            }, 1400);
+        }
+
+        // 快看漫画风格顶部导航切换
+        function switchTopTab(index) {
+            document.querySelectorAll('.kk-top-nav-tab').forEach((tab, i) => {
+                if (i === index) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            // 简单切换页面
+            if (index === 0) window.location.href = '/';
+            if (index === 1) window.location.href = '/clothing';
+            if (index === 3) window.location.href = '/tryon';
+        }
+
+        // 快看漫画风格底部导航切换
+        function switchBottomTab(index) {
+            document.querySelectorAll('.kk-bottom-nav-tab').forEach((tab, i) => {
+                if (i === index) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            // 简单切换页面
+            if (index === 0) window.location.href = '/';
+            if (index === 1) window.location.href = '/clothing';
+            if (index === 4) window.location.href = '/profile';
+        }
+
+        // 高亮当前页的导航
+        function highlightCurrentPageNav() {
+            const currentPath = window.location.pathname;
+            
+            // 高亮顶部导航
+            document.querySelectorAll('.kk-top-nav-tab').forEach(tab => {
+                const tabPage = tab.getAttribute('data-page');
+                if (tabPage && currentPath === tabPage) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            // 高亮底部导航
+            document.querySelectorAll('.kk-bottom-nav-tab').forEach(tab => {
+                const tabPage = tab.getAttribute('data-page');
+                if (tabPage && currentPath === tabPage) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+        }
+
+        // 每次刷新都重定向回推荐首页；同会话内点其他功能自由导航
+        (function forceRedirectToHome() {
+            const currentPath = window.location.pathname;
+            const isHome = currentPath === '/' || currentPath === '/index' || currentPath === '';
+
+            // 检测是否为刷新(F5 / Ctrl+R / 刷新按钮)
+            let navType = 'navigate';
+            try {
+                const navEntries = performance.getEntriesByType('navigation');
+                if (navEntries && navEntries.length > 0 && navEntries[0].type) {
+                    navType = navEntries[0].type; // navigate | reload | back_forward | prerender
+                } else if (performance.navigation) {
+                    navType = performance.navigation.type === 1 ? 'reload' : 'navigate';
+                }
+            } catch (e) {}
+
+            // 标记本会话已开始 + 时间戳
+            const SESSION_KEY = 'sessionStartedAt';
+            const SESSION_TTL = 5 * 60 * 1000; // 5 分钟内算同会话
+            const now = Date.now();
+            const lastStart = parseInt(sessionStorage.getItem(SESSION_KEY) || '0', 10);
+            const isSameSession = lastStart && (now - lastStart) < SESSION_TTL;
+            sessionStorage.setItem(SESSION_KEY, String(now));
+
+            // 同会话内已经引导过 → 不再强制
+            if (isSameSession && sessionStorage.getItem('onboardingShown')) {
+                return;
+            }
+
+            // 1) 刷新时强制跳回首页
+            if (navType === 'reload' && !isHome) {
+                window.location.replace('/');
+                return;
+            }
+            // 2) 新会话(新标签页 / 关闭后再开)从非首页进来,也跳回首页
+            if (!isSameSession && !isHome) {
+                window.location.replace('/');
+                return;
+            }
+            // 3) 同会话内点链接导航 → 不动
+        })();
+
+        // 页面加载完成后检查
+        document.addEventListener('DOMContentLoaded', function() {
+            highlightCurrentPageNav();
+        });
+    </script>
+
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/auth-simple.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
